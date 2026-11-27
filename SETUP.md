@@ -71,6 +71,16 @@ With `API_URL` empty, the page runs in demo mode with sample items and the demo 
   accounts (about 100 a day).
 - Lost-item reports for email alerts are kept in the **Reports** tab for 30 days, or until the
   student clicks **Stop alerts**.
+- If a student hasn't picked up an approved item after 3 days, they get one reminder email.
+  When the owner collects the item, staff click **Picked up** under Closed claims: this saves
+  the time, stops the reminder and opens a **release slip** to print and sign.
+- If emails stop working (no permission, daily limit reached, or no alert email set), the
+  Staff panel shows a red warning that says how to fix it.
+
+## Visits
+
+- The site counts how many times it's opened each day (once per browser session) in the
+  **Visits** tab. It doesn't record who visited. Staff see the totals under Office numbers.
 
 ## Changing the script later
 

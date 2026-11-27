@@ -27,9 +27,11 @@ const KEEP_DAYS = 30;                    // claimant details and lost-item repor
 const SESSION_SECONDS = 6 * 60 * 60;     // staff stay logged in up to 6 hours (the CacheService maximum)
 const MAX_PENDING_PER_STUDENT = 3;
 const MAX_REPORTS_PER_DAY = 5;
+const REMIND_AFTER_DAYS = 3;             // approved but not picked up after this many days: one reminder email
 const ITEM_COLS = ["id", "tag", "name", "cat", "place", "date", "desc", "status", "photoId", "blurred", "postedAt", "releasedAt"];
-const CLAIM_COLS = ["cid", "itemId", "itemName", "tag", "name", "studentNo", "contact", "proof", "consent", "status", "at", "decidedAt", "purged"];
+const CLAIM_COLS = ["cid", "itemId", "itemName", "tag", "name", "studentNo", "contact", "proof", "consent", "status", "at", "decidedAt", "purged", "pickedUpAt", "remindedAt"];
 const REPORT_COLS = ["rid", "name", "email", "cat", "date", "item", "place", "at", "notified"];
+const VISIT_COLS = ["date", "visits"];   // how many times the site was opened each day; who opened it is not recorded
 const CATS = ["ID", "Umbrella", "Charger", "Tumbler", "Calculator", "Flash drive", "Notebook", "Earphones", "Bag", "Wallet", "Keys", "Phone", "Eyeglasses", "Clothing", "Book", "Other"];
 const PLACES = ["Main lobby", "Library", "Canteen", "Gym", "Computer labs", "Classrooms, 2nd floor", "Classrooms, 3rd floor", "Classrooms, 4th floor", "Comfort rooms", "Parking area", "Other"];
 
@@ -46,7 +48,7 @@ function onOpen() {
 function setup() {
   autoSetup_();
   photoFolder_();
-  tell_("The Items, Claims and Reports tabs are ready. Next: NULPLF > Set staff login.");
+  tell_("The Items, Claims, Reports and Visits tabs are ready. Next: NULPLF > Set staff login.");
 }
 
 // Also runs by itself the first time the website calls the API, so the menu step is optional.
@@ -55,6 +57,8 @@ function autoSetup_() {
   if (!ss.getSheetByName("Items")) prepareSheet_(ss, "Items", ITEM_COLS);
   if (!ss.getSheetByName("Claims")) prepareSheet_(ss, "Claims", CLAIM_COLS);
   if (!ss.getSheetByName("Reports")) prepareSheet_(ss, "Reports", REPORT_COLS);
+  if (!ss.getSheetByName("Visits")) prepareSheet_(ss, "Visits", VISIT_COLS);
+  fixHeaders_();
   try {
     if (!ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === "purgeOldClaims")) {
       ScriptApp.newTrigger("purgeOldClaims").timeBased().everyDays(1).atHour(2).inTimezone(TZ).create();
@@ -67,6 +71,19 @@ function prepareSheet_(ss, name, cols) {
   sh.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight("bold");
   sh.setFrozenRows(1);
   sh.getRange(2, 1, Math.max(1, sh.getMaxRows() - 1), cols.length).setNumberFormat("@"); // keep dates and numbers as typed
+}
+
+// Sheets made by an older version miss the newer columns (for example pickedUpAt in Claims): add their names.
+function fixHeaders_() {
+  const ss = SpreadsheetApp.getActive();
+  [["Items", ITEM_COLS], ["Claims", CLAIM_COLS], ["Reports", REPORT_COLS], ["Visits", VISIT_COLS]].forEach(([name, cols]) => {
+    const sh = ss.getSheetByName(name);
+    if (!sh) return;
+    const head = sh.getRange(1, 1, 1, cols.length).getValues()[0];
+    if (cols.every((c, i) => head[i] === c)) return;
+    sh.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight("bold");
+    sh.getRange(2, 1, Math.max(1, sh.getMaxRows() - 1), cols.length).setNumberFormat("@");
+  });
 }
 
 function setStaffLogin() {
@@ -120,7 +137,7 @@ function doGet(e) {
   }
 }
 
-// POST { action: "claim" | "status" | "report" | "unreport" | "login" | "staff", ... }
+// POST { action: "claim" | "status" | "report" | "unreport" | "visit" | "login" | "staff", ... }
 function doPost(e) {
   let req;
   try { req = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: "bad_request" }); }
@@ -129,6 +146,7 @@ function doPost(e) {
     if (req.action === "status") return out_(statuses_(req));
     if (req.action === "report") return out_(report_(req));
     if (req.action === "unreport") return out_(unreport_(req));
+    if (req.action === "visit") return out_(visit_());
     if (req.action === "login") return out_(login_(req));
     if (req.action === "staff") return out_(staff_(req));
     return out_({ ok: false, error: "unknown_action" });
@@ -247,6 +265,29 @@ function unreport_(req) {
   });
 }
 
+/* ----- public: visit counter (a number per day, nothing about who visited) ----- */
+
+function visit_() {
+  const day = today_();
+  withLock_(() => {
+    const r = rows_("Visits", VISIT_COLS).filter(x => day_(x.date) === day)[0];
+    if (r) { r.visits = (Number(r.visits) || 0) + 1; save_("Visits", VISIT_COLS, r); }
+    else add_("Visits", VISIT_COLS, { date: day, visits: 1 });
+  });
+  return { ok: true };
+}
+
+function visitStats_() {
+  const now = Date.parse(today_()), s = { today: 0, week: 0, month: 0 };
+  rows_("Visits", VISIT_COLS).forEach(r => {
+    const ago = Math.round((now - Date.parse(day_(r.date))) / 864e5), n = Number(r.visits) || 0;
+    if (ago === 0) s.today += n;
+    if (ago >= 0 && ago < 7) s.week += n;
+    if (ago >= 0 && ago < 30) s.month += n;
+  });
+  return s;
+}
+
 /* ----- staff login: the password is checked here, on Google's server ----- */
 
 function login_(req) {
@@ -269,15 +310,19 @@ function staff_(req) {
   cache.put(key, "1", SESSION_SECONDS); // each action keeps the session alive
   switch (req.op) {
     case "claims":
+      fixHeaders_();
       purgeOldClaims();
       return {
         ok: true,
         claims: rows_("Claims", CLAIM_COLS).filter(c => str_(c.cid)).map(staffClaim_),
-        sheetUrl: SpreadsheetApp.getActive().getUrl() // staff only: for the "Open Google Sheet" button
+        sheetUrl: SpreadsheetApp.getActive().getUrl(), // staff only: for the "Open Google Sheet" button
+        mail: mailStatus_(),
+        visits: visitStats_()
       };
     case "post": return postItem_(req);
     case "edit": return editItem_(req);
     case "decide": return decide_(req);
+    case "pickup": return pickup_(req);
     case "release": return releaseItem_(req.itemId);
     case "remove": return removeItem_(req.itemId);
     case "logout": cache.remove(key); return { ok: true };
@@ -291,8 +336,20 @@ function staffClaim_(c) {
     cid: str_(c.cid), itemId: str_(c.itemId), itemName: str_(c.itemName), tag: str_(c.tag),
     name: purged ? "" : str_(c.name), studentNo: purged ? "" : str_(c.studentNo),
     contact: purged ? "" : str_(c.contact), proof: purged ? "" : str_(c.proof, 1000),
-    status: cstatus_(c.status), at: iso_(c.at), decidedAt: iso_(c.decidedAt), purged
+    status: cstatus_(c.status), at: iso_(c.at), decidedAt: iso_(c.decidedAt), purged,
+    pickedUpAt: iso_(c.pickedUpAt), remindedAt: iso_(c.remindedAt)
   };
+}
+
+// The owner collected an approved item at the office: record the time (this stops the reminder email).
+function pickup_(req) {
+  return withLock_(() => {
+    const c = rows_("Claims", CLAIM_COLS).filter(x => str_(x.cid) === str_(req.cid, 20))[0];
+    if (!c) return { ok: false, error: "not_found" };
+    if (cstatus_(c.status) !== "approved") return { ok: false, error: "not_approved" };
+    if (!iso_(c.pickedUpAt)) { c.pickedUpAt = new Date().toISOString(); save_("Claims", CLAIM_COLS, c); }
+    return { ok: true, claim: staffClaim_(c) };
+  });
 }
 
 function savePhoto_(photo, name) {
@@ -431,11 +488,27 @@ function purgeOldClaims() {
       if (str_(r.rid) && at && at <= cutoff) sheet_("Reports").deleteRow(r._row);
     });
   } finally { lock.releaseLock(); }
+  remindPickups_();
+}
+
+// One reminder to students whose claim was approved REMIND_AFTER_DAYS ago but who haven't picked up the item.
+function remindPickups_() {
+  const cutoff = Date.now() - REMIND_AFTER_DAYS * 864e5;
+  const due = withLock_(() => rows_("Claims", CLAIM_COLS).filter(c =>
+      cstatus_(c.status) === "approved" && !bool_(c.purged) && !iso_(c.pickedUpAt) && !iso_(c.remindedAt) &&
+      isEmail_(c.contact) && Date.parse(iso_(c.decidedAt)) <= cutoff)
+    .map(c => { c.remindedAt = new Date().toISOString(); save_("Claims", CLAIM_COLS, c); return c; }));
+  due.forEach(c => send_(str_(c.contact, 120), "Reminder: your " + str_(c.itemName) + " is waiting for you",
+    "Hi " + first_(c.name) + ",\n\nYour claim for " + str_(c.itemName) + " (" + str_(c.tag) + ") was approved, " +
+    "but our records don't show that you've picked it up yet.\n\n" +
+    "Pick it up at " + OFFICE_INFO + ". Bring your NU ID and your claim reference " + str_(c.cid) + ".\n\n" +
+    "If you already picked it up, you can ignore this email.\n\n" + SITE_URL + "\n\nNULPLF Lost and Found"));
 }
 
 /* ===================== Emails ===================== */
 
 function notifyStaffNewClaim_(c, open) {
+  if (!isEmail_(alertEmail_())) mailProblem_("no_alert", "No staff alert email is set, so staff weren't emailed about a new claim.");
   send_(alertEmail_(), "New claim: " + str_(c.itemName) + " (" + str_(c.tag) + ")",
     str_(c.name) + " sent a claim for " + str_(c.itemName) + " (" + str_(c.tag) + ")." +
     (open > 1 ? "\nThis item now has " + open + " claims to compare." : "") +
@@ -484,13 +557,43 @@ function notifyMatches_(it) {
     "To stop these emails, open My requests on the site and click Stop alerts.\n\nNULPLF Lost and Found"));
 }
 
+// An email problem never blocks the action itself, but it is saved so the Staff panel can warn staff.
 function send_(to, subject, body) {
   if (!isEmail_(to)) return false;
   try {
-    if (MailApp.getRemainingDailyQuota() < 1) return false;
+    if (MailApp.getRemainingDailyQuota() < 1) { mailProblem_("quota", "The daily email limit is used up."); return false; }
     MailApp.sendEmail({ to: to, subject: subject, body: body, name: "NULPLF Lost and Found" });
+    mailOk_();
     return true;
-  } catch (e) { return false; } // an email problem never blocks the action itself
+  } catch (e) {
+    const msg = String((e && e.message) || e);
+    mailProblem_(/permission|authori[sz]/i.test(msg) ? "permission" : "error", msg);
+    return false;
+  }
+}
+
+function mailProblem_(kind, message) {
+  console.error("Email problem (" + kind + "): " + message);
+  PropertiesService.getScriptProperties().setProperty("MAIL_PROBLEM",
+    JSON.stringify({ kind: kind, message: str_(message, 300), at: new Date().toISOString() }));
+}
+
+function mailOk_() {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty("MAIL_PROBLEM")) props.deleteProperty("MAIL_PROBLEM");
+}
+
+// For the Staff panel: the last email problem (if any), emails left today, and whether an alert email is set.
+function mailStatus_() {
+  let problem = null, quota = null;
+  try { problem = JSON.parse(PropertiesService.getScriptProperties().getProperty("MAIL_PROBLEM") || "null"); } catch (e) { problem = null; }
+  try {
+    quota = MailApp.getRemainingDailyQuota();
+    if (problem && problem.kind === "permission") { mailOk_(); problem = null; } // permission was given since then
+  } catch (e) {
+    problem = { kind: "permission", message: String((e && e.message) || e), at: new Date().toISOString() };
+  }
+  return { problem: problem, quota: quota, alertSet: isEmail_(alertEmail_()) };
 }
 
 function alertEmail_() {

@@ -143,6 +143,36 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
 .msg{padding:12px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line);margin-top:12px;font-size:15px}
 .hide{display:none!important}
 .prev{max-height:160px;max-width:100%;border-radius:8px;margin-top:6px}
+.photorow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.photorow input{flex:1 1 200px}
+.tag .keep{font-size:13px;font-weight:600}
+.tag .keep.late{color:var(--red)}
+.tag button.share{position:absolute;top:6px;left:6px;z-index:1;width:34px;height:34px;min-height:0;padding:0;border-radius:50%;background:rgb(255 255 255/.92);color:var(--tagink);border:1.5px solid var(--kraftd);display:grid;place-items:center}
+.tag button.share:hover{background:#fff;filter:none}
+.tag button.share svg{width:16px;height:16px}
+.tag.hl{animation:hl 1s ease 2;background:#ffe3a1}
+@keyframes hl{50%{transform:translateY(-4px) scale(1.03)}}
+@media (prefers-reduced-motion:reduce){.tag.hl{animation:none}}
+.msg.warn{border-color:var(--red);border-left-width:5px}
+button.sm{min-height:36px;padding:6px 12px;font-size:14px;margin-top:6px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:15px;max-width:calc(100% - 32px);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s;overflow-wrap:anywhere}
+.toast.on{opacity:1}
+.slip h2{font-size:26px}
+.slip .slipsub{margin:4px 0 14px;color:var(--muted)}
+.slip table{width:100%;border-collapse:collapse;font-size:15px}
+.slip th,.slip td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.slip th{width:38%;font-weight:600}
+.slip .blank{display:inline-block;width:100%;min-height:20px;border-bottom:1px solid currentColor}
+.slip .sigs{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:40px;font-size:14px}
+.slip .sigs span{display:block;border-bottom:1px solid currentColor;height:36px;margin-bottom:6px}
+.slip .note{font-size:13px;color:var(--muted);margin-top:18px}
+.slipbtns{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+@media print{
+  body.printslip>*:not(#ovSlip){display:none!important}
+  body.printslip #ovSlip{position:static;display:block;background:none;padding:0}
+  body.printslip #ovSlip .modal{max-width:none;max-height:none;overflow:visible;padding:0;color:#000;background:#fff}
+  body.printslip #ovSlip .x,body.printslip .slipbtns{display:none}
+  body.printslip .slip th,body.printslip .slip td{border-color:#999}
+}
 .clist{display:grid;gap:14px;margin-top:12px}
 .cgroup{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg)}
 .citem{display:grid;grid-template-columns:104px minmax(0,1fr);gap:12px;padding:12px;background:var(--panel);align-items:start}
@@ -249,6 +279,7 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
   <div class="wrap">
     <h2>Security Office: post and release items</h2>
     <p class="lead" id="staffLead">Only staff accounts see this panel.</p>
+    <div id="mailWarn" class="msg warn hide" role="alert"></div>
     <div class="btnrow">
     <a class="btnlink hide" id="sheetLink" href="#" target="_blank" rel="noopener"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="2.5" width="14" height="15" rx="2"/><path d="M3 7.5h14M3 12.5h14M8.5 7.5v10"/></svg>Open Google Sheet<span class="hide">(opens in a new tab)</span></a>
     <a class="btnlink" id="posterLink" href="poster.html" target="_blank" rel="noopener"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="2.5" width="6" height="6" rx="1"/><rect x="11.5" y="2.5" width="6" height="6" rx="1"/><rect x="2.5" y="11.5" width="6" height="6" rx="1"/><path d="M11.5 11.5h2.5v2.5M17.5 11.5v6h-6v-2.5"/></svg>Print QR poster<span class="hide">(opens in a new tab)</span></a>
@@ -267,7 +298,8 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
         <div class="f">
           <label for="sPhoto">Photo <small>(optional, shrunk before upload)</small></label>
           <div id="sCurWrap" class="hide"><img id="sCur" class="prev" alt="Current photo" referrerpolicy="no-referrer"><label class="chk" style="white-space:normal"><input type="checkbox" id="sRmPhoto"> Remove the current photo</label></div>
-          <input id="sPhoto" type="file" accept="image/*">
+          <div class="photorow"><input id="sPhoto" type="file" accept="image/*"><button type="button" class="alt hide" id="sCamBtn">Take photo</button></div>
+          <input id="sCam" type="file" accept="image/*" capture="environment" class="hide" tabindex="-1" aria-hidden="true">
           <label class="chk" style="white-space:normal"><input type="checkbox" id="sBlur"> Blur photo before posting</label>
           <small>Turned on for IDs and wallets, so names, faces and numbers can't be read.</small>
           <img id="sPrev" class="prev hide" alt="Photo as it will be posted">
@@ -291,6 +323,7 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
     <h3 style="margin-top:40px" id="statsTitle">Office numbers</h3>
     <p class="lead" style="font-size:15px;margin-top:6px">Counted from every item on record, returned ones included.</p>
     <div class="tiles" id="tiles"></div>
+    <p class="muted" id="visitLine" style="font-size:15px;margin:12px 0 0"></p>
     <div class="charts">
       <div><h3 style="font-size:17px">Where items are found</h3><ul class="bars" id="byPlace"></ul></div>
       <div><h3 style="font-size:17px">What gets turned in</h3><ul class="bars" id="byCat"></ul></div>
@@ -305,11 +338,11 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
       <details><summary>Who posts the items?</summary><p>Only Security Office staff. They log in with a staff account to post the items turned in at the office, approve claims and release items. Students can search, claim and report, but can't post or change items.</p></details>
       <details><summary>How do I prove an item is mine?</summary><p>When you claim, describe something not shown in the post: a sticker, what's inside, a scratch, the lock screen. At pickup, show your NU ID. Staff release the item only when the details match.</p></details>
       <details><summary>Why can't I see the full details of an item?</summary><p>Posts leave out identifying details on purpose, so only the real owner can describe them. Photos of IDs and wallets are blurred before they're posted, and IDs show the name but not the student number.</p></details>
-      <details><summary>What happens to my personal details?</summary><p>Only Security Office staff see your name, student number, contact details and proof of ownership, and only to process your claim. They're deleted automatically 30 days after your claim is closed, following the Data Privacy Act of 2012 (RA 10173). Your sign-in details stay on your own phone and are sent to the office only when you claim an item. If you report a lost item while signed in with an email, the office keeps that report for 30 days to email you about matches; you can stop it anytime under My requests.</p></details>
+      <details><summary>What happens to my personal details?</summary><p>Only Security Office staff see your name, student number, contact details and proof of ownership, and only to process your claim. They're deleted automatically 30 days after your claim is closed, following the Data Privacy Act of 2012 (RA 10173). Your sign-in details stay on your own phone and are sent to the office only when you claim an item. If you report a lost item while signed in with an email, the office keeps that report for 30 days to email you about matches; you can stop it anytime under My requests. The site also counts how many times it's opened each day, without recording who opened it.</p></details>
       <details><summary>Why do I need to sign in?</summary><p>So the Security Office knows who is claiming and how to reach you, without you typing your details every time. In this prototype you enter your name and student number once. The full version would use your NU email login instead.</p></details>
       <details><summary>How long are items kept?</summary><p>Items are kept for 30 days. After that, staff mark them for disposal or donation, so check early.</p></details>
       <details><summary>I found something. What do I do?</summary><p>Bring it to the Security Office. Staff will tag it and post it here the same day.</p></details>
-      <details><summary>Will I get notified?</summary><p>Yes, if you sign in with an email address. You get an email when your claim is approved or not, and when an item that may be yours is posted after you report it. Possible matches also appear under My requests.</p></details>
+      <details><summary>Will I get notified?</summary><p>Yes, if you sign in with an email address. You get an email when your claim is approved or not, a reminder if you haven't picked up an approved item after 3 days, and an email when an item that may be yours is posted after you report it. Possible matches also appear under My requests.</p></details>
     </div>
   </div>
 </section>
@@ -361,6 +394,15 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
     <div id="pMsg" class="msg hide" role="status"></div>
   </div>
 </div>
+
+<div class="ov" id="ovSlip" role="dialog" aria-modal="true" aria-labelledby="slipTitle">
+  <div class="modal">
+    <button type="button" class="x" data-close aria-label="Close">×</button>
+    <div id="slip" class="slip"></div>
+    <div class="slipbtns"><button type="button" id="slipPrint">Print slip</button><button type="button" class="alt" data-close>Close</button></div>
+  </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script>
 {
@@ -415,9 +457,9 @@ const SAMPLE=[
 const SAMPLE_CLAIMS=[
  {cid:"CL-7Q2M",itemId:"s3",itemName:"White 20W phone charger",tag:"LF-0158",name:"Paolo Reyes",studentNo:"2024-104233",contact:"preyes@example.edu",proof:"There's a strip of yellow tape on the cable near the plug.",status:"pending",at:stampAgo(1)},
  {cid:"CL-3PN7",itemId:"s3",itemName:"White 20W phone charger",tag:"LF-0158",name:"Kyla Ramos",studentNo:"2025-127790",contact:"kramos@example.edu",proof:"It's a white charger with a cable, I lost it in the library.",status:"pending",at:stampAgo(0)},
- {cid:"CL-4KD8",itemId:"s6",itemName:"Black 64GB flash drive",tag:"LF-0154",name:"Bea Villanueva",studentNo:"2023-118560",contact:"bvillanueva@example.edu",proof:"Has a folder named THESIS-FINAL-v3 with our Chapter 2.",status:"approved",at:stampAgo(7),decidedAt:stampAgo(6)},
- {cid:"CL-9VX1",itemId:"h1",itemName:"Blue Aqua Flask tumbler",tag:"LF-0152",name:"Carlo Mendoza",studentNo:"2025-120417",contact:"cmendoza@example.edu",proof:"Dent on the bottom and a cat sticker under the lid.",status:"approved",at:stampAgo(11),decidedAt:stampAgo(10)},
- {cid:"CL-6TR3",itemId:"h4",itemName:"Brown leather wallet",tag:"LF-0149",name:"Andrea Cruz",studentNo:"2023-101775",contact:"acruz@example.edu",proof:"Brown bifold with my library card and a beep card inside.",status:"approved",at:stampAgo(21),decidedAt:stampAgo(20)},
+ {cid:"CL-4KD8",itemId:"s6",itemName:"Black 64GB flash drive",tag:"LF-0154",name:"Bea Villanueva",studentNo:"2023-118560",contact:"bvillanueva@example.edu",proof:"Has a folder named THESIS-FINAL-v3 with our Chapter 2.",status:"approved",at:stampAgo(7),decidedAt:stampAgo(6),remindedAt:stampAgo(3)},
+ {cid:"CL-9VX1",itemId:"h1",itemName:"Blue Aqua Flask tumbler",tag:"LF-0152",name:"Carlo Mendoza",studentNo:"2025-120417",contact:"cmendoza@example.edu",proof:"Dent on the bottom and a cat sticker under the lid.",status:"approved",at:stampAgo(11),decidedAt:stampAgo(10),pickedUpAt:stampAgo(9)},
+ {cid:"CL-6TR3",itemId:"h4",itemName:"Brown leather wallet",tag:"LF-0149",name:"Andrea Cruz",studentNo:"2023-101775",contact:"acruz@example.edu",proof:"Brown bifold with my library card and a beep card inside.",status:"approved",at:stampAgo(21),decidedAt:stampAgo(20),pickedUpAt:stampAgo(20)},
  {cid:"CL-2HB6",itemId:"h4",itemName:"Brown leather wallet",tag:"LF-0149",name:"Mark Santos",studentNo:"2024-109982",contact:"msantos@example.edu",proof:"Black wallet with my ID inside.",status:"rejected",at:stampAgo(22),decidedAt:stampAgo(21)},
  {cid:"CL-8MW5",itemId:"h6",itemName:"NU student ID",tag:"LF-0146",name:"Joanna Dizon",studentNo:"2025-131208",contact:"jdizon@example.edu",proof:"My ID, the lanyard has a small keychain.",status:"approved",at:stampAgo(39),decidedAt:stampAgo(38)}];
 
@@ -447,6 +489,7 @@ $("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);
 
 const blankMe=()=>({profile:null,reports:[],claims:[]});
 let items=[],allClaims=[],my=blankMe(),staffIn=false,staffToken=null,claimItem=null,pendingPhoto=null,afterSign=null,photoRun=0,loaded=!API,pulling=null,demoKey=null,sheetUrl="";
+let mailInfo=null,visitInfo=null,photoFile=null,hashDone=false;
 const demoStore={};
 const expired=c=>!!c.decidedAt&&!c.purged&&days(ymd(c.decidedAt))>=KEEP_DAYS;
 const purge=c=>({...c,name:"",studentNo:"",contact:"",proof:"",purged:true});
@@ -484,8 +527,9 @@ function pull(){
     catch(e){$("#srcNote").textContent=loaded?"Couldn't reach the Security Office list just now. Showing the last items loaded.":"Couldn't load the found items. Check your connection, then reload the page."}
     const open=my.claims.filter(c=>!c.purged).map(c=>c.cid).slice(-50);
     if(open.length){try{const d=await call("status",{cids:open});if(syncMine(Object.entries(d.statuses||{}).map(([cid,s])=>({cid,...s}))))saveMine()}catch(e){}}
-    if(staffIn){try{const d=await staffCall("claims");allClaims=Array.isArray(d.claims)?d.claims:[];sheetUrl=typeof d.sheetUrl==="string"&&/^https:\/\/docs\.google\.com\/spreadsheets\//.test(d.sheetUrl)?d.sheetUrl:""}catch(e){}}
-    renderAll();
+    if(staffIn){try{const d=await staffCall("claims");allClaims=Array.isArray(d.claims)?d.claims:[];sheetUrl=typeof d.sheetUrl==="string"&&/^https:\/\/docs\.google\.com\/spreadsheets\//.test(d.sheetUrl)?d.sheetUrl:"";
+      mailInfo=d.mail&&typeof d.mail==="object"?d.mail:null;visitInfo=d.visits&&typeof d.visits==="object"?d.visits:null}catch(e){}}
+    renderAll();if(loaded&&!hashDone){hashDone=true;focusHash()}
   })().finally(()=>{pulling=null});
   return pulling;
 }
@@ -572,15 +616,23 @@ function visible(){
     return words.every(w=>hits(w,h));
   }).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
+/* Items are kept HOLD_DAYS days after they're found, so each tag says until when. */
+function keepLine(i){
+  const t=Date.parse(String(i.date).slice(0,10));if(isNaN(t))return "";
+  const until=new Date(t+HOLD_DAYS*864e5).toISOString().slice(0,10),left=between(today,until);
+  if(left<0)return `<div class="keep late">Kept over ${HOLD_DAYS} days: ask the Security Office soon</div>`;
+  return `<div class="keep${left<=5?" late":""}">Kept until ${fmt(until)}${left<=5?` (${left===0?"last day":left+" day"+(left===1?"":"s")+" left"})`:""}</div>`;
+}
 function renderBoard(){
   if(!loaded){$("#stat").innerHTML="";$("#board").innerHTML=`<div class="empty">Loading found items…</div>`;return}
   const v=visible(),av=items.filter(i=>i.status==="available").length,pe=items.filter(i=>i.status==="pending").length,wk=items.filter(i=>days(i.date)<=7&&i.status!=="claimed").length;
   $("#stat").innerHTML=`<span><b>${av}</b>waiting to be claimed</span><span><b>${pe}</b>claim pending</span><span><b>${wk}</b>turned in this week</span>`;
   $("#board").innerHTML=v.length?v.map(i=>{const src=photoSrc(i);return `<article class="tag ${i.status==="claimed"?"claimed":""}" id="item-${esc(i.id)}">
     <span class="no">${esc(i.tag)}</span>
-    <div class="pic">${src?`<img src="${esc(src)}" alt="Photo of ${esc(i.name)}${i.blurred?", blurred for privacy":""}" loading="lazy" referrerpolicy="no-referrer">${i.blurred?`<span class="blurtag">Blurred for privacy</span>`:""}`:icon(i.cat)}</div>
+    <div class="pic"><button type="button" class="share" data-share="${esc(i.id)}" aria-label="Share ${esc(i.tag)}" title="Share this item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>${src?`<img src="${esc(src)}" alt="Photo of ${esc(i.name)}${i.blurred?", blurred for privacy":""}" loading="lazy" referrerpolicy="no-referrer">${i.blurred?`<span class="blurtag">Blurred for privacy</span>`:""}`:icon(i.cat)}</div>
     <h3>${esc(i.name)}</h3>
     <div class="meta">${esc(i.place)} · <span class="nw">${fmt(i.date)}</span></div>
+    ${i.status!=="claimed"?keepLine(i):""}
     ${i.desc?`<div class="desc">${esc(i.desc)}</div>`:""}
     <div class="foot"><span class="badge b-${esc(i.status)}">${esc(statusText[i.status]||i.status)}</span>${i.status!=="claimed"&&!staffIn?(my.claims.some(c=>c.itemId===i.id&&c.status==="pending")?`<button type="button" disabled>Claim sent</button>`:`<button type="button" data-claim="${esc(i.id)}">This is mine</button>`):""}</div>
   </article>`}).join(""):`<div class="empty">${items.length?"No items match. Try another category, or":"Nothing has been posted yet. You can"} <a href="#report">report your lost item</a> so you see it when it's turned in.</div>`;
@@ -608,6 +660,7 @@ function renderStaff(){
   const su=sheetUrl||(API&&/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[\w-]+\/edit$/.test(SHEET_URL)?SHEET_URL:"");
   $("#sheetLink").classList.toggle("hide",!su);if(su)$("#sheetLink").href=su;
   $("#staffLead").textContent=API?"Logged in as Security Office staff. Items you post show up on every student's phone within a minute.":"Demo mode: logged in as Security Office staff. Changes reset when you reload.";
+  const mn=mailNote();$("#mailWarn").classList.toggle("hide",!mn);$("#mailWarn").innerHTML=mn;
   const pend=allClaims.filter(c=>c.status==="pending");
   $("#claimLead").textContent="Compare each answer with the item. Approving one claim closes the others for that item"+(API?", and claimants with an email get the result by email.":".");
   $("#claimHead").textContent=pend.length?`Claim requests (${pend.length})`:"Claim requests";
@@ -616,7 +669,7 @@ function renderStaff(){
     const it=items.find(i=>i.id===id)||{name:cs[0].itemName,tag:cs[0].tag,cat:"Other"},src=photoSrc(it);
     return `<div class="cgroup"><div class="citem"><div class="cthumb">${src?`<a href="${esc(src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="Photo of ${esc(it.name)}" referrerpolicy="no-referrer"></a>`:icon(it.cat)}</div><div><b>${esc(it.name)}</b><p>${esc(it.tag)}${it.place?` · ${esc(it.place)}`:""}${it.date?` · found ${fmt(it.date)}`:""}</p>${it.desc?`<p>${esc(it.desc)}</p>`:""}${cs.length>1?`<p class="cnote">${cs.length} people claim this item. Compare their answers.</p>`:""}</div></div>${cs.map(c=>`<div class="cclaim"><div><b>${esc(c.name)}</b> · ${esc(c.studentNo)} · ${esc(c.contact)}${c.at?` <span class="muted">· sent ${fmt(ymd(c.at))}</span>`:""}</div><p class="proof"><span class="muted">Their proof:</span> ${esc(c.proof)}</p><div class="act"><button type="button" data-ok="${esc(c.cid)}">Approve</button><button type="button" class="alt" data-no="${esc(c.cid)}">Reject</button></div></div>`).join("")}</div>`}).join(""):`<p class="muted" style="margin:0">No pending claims.</p>`;
   const closed=allClaims.filter(c=>c.status!=="pending").sort((a,b)=>String(b.decidedAt||"").localeCompare(String(a.decidedAt||""))).slice(0,8);
-  $("#closedTbl tbody").innerHTML=closed.length?closed.map(c=>{const d=c.decidedAt?days(ymd(c.decidedAt)):0,left=Math.max(0,KEEP_DAYS-d);return `<tr><td><b>${esc(c.itemName)}</b><br><span class="nw">${esc(c.tag)}</span></td><td>${c.purged?`<span class="muted">Details deleted after ${KEEP_DAYS} days</span>`:`${esc(c.name)}<br>${esc(c.studentNo)}`}</td><td>${c.status==="approved"?"Approved":"Rejected"}</td><td class="nw">${c.decidedAt?fmt(ymd(c.decidedAt)):""}${c.purged?"":`<span class="sub">Details deleted in ${left} day${left===1?"":"s"}</span>`}</td></tr>`}).join(""):`<tr><td colspan="4">No closed claims yet.</td></tr>`;
+  $("#closedTbl tbody").innerHTML=closed.length?closed.map(c=>{const d=c.decidedAt?days(ymd(c.decidedAt)):0,left=Math.max(0,KEEP_DAYS-d);return `<tr><td><b>${esc(c.itemName)}</b><br><span class="nw">${esc(c.tag)}</span></td><td>${c.purged?`<span class="muted">Details deleted after ${KEEP_DAYS} days</span>`:`${esc(c.name)}<br>${esc(c.studentNo)}`}</td><td>${c.status!=="approved"?"Rejected":"Approved"+(c.purged?"":c.pickedUpAt?`<span class="sub">Picked up ${fmt(ymd(c.pickedUpAt))}</span><button type="button" class="link" data-slip="${esc(c.cid)}">Print slip</button>`:`<span class="sub">Waiting for pickup${c.remindedAt?" · reminder sent":""}</span><button type="button" class="alt sm" data-pickup="${esc(c.cid)}" title="The owner collected it: save the time and print a release slip">Picked up</button>`)}</td><td class="nw">${c.decidedAt?fmt(ymd(c.decidedAt)):""}${c.purged?"":`<span class="sub">Details deleted in ${left} day${left===1?"":"s"}</span>`}</td></tr>`}).join(""):`<tr><td colspan="4">No closed claims yet.</td></tr>`;
   const inv=items.filter(i=>i.status!=="claimed").sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   $("#invTbl tbody").innerHTML=inv.length?inv.map(i=>{const d=days(i.date);return `<tr><td class="nw">${esc(i.tag)}</td><td>${esc(i.name)}</td><td class="nw">${fmt(i.date)}</td><td class="nw ${d>=HOLD_DAYS?"old":""}">${d} day${d===1?"":"s"}${d>=HOLD_DAYS?" · past 30":""}</td><td>${esc(statusText[i.status]||i.status)}</td><td><div class="act"><button type="button" class="alt" data-edit="${esc(i.id)}">Edit</button><button type="button" class="alt" data-release="${esc(i.id)}">Mark claimed</button><button type="button" class="alt" data-del="${esc(i.id)}">Remove</button></div></td></tr>`}).join(""):`<tr><td colspan="6">No items on hand.</td></tr>`;
   renderStats();
@@ -626,6 +679,8 @@ function renderStats(){
   const durs=ret.filter(i=>i.releasedAt).map(i=>Math.max(0,between(String(i.date),ymd(i.releasedAt))));
   const avg=durs.length?durs.reduce((a,b)=>a+b,0)/durs.length:null,pct=total?Math.round(ret.length/total*100):0;
   $("#tiles").innerHTML=[[total,"Items turned in"],[ret.length,`Returned to owners (${pct}%)`],[hand.length,`Still on hand${old.length?`, ${old.length} past 30 days`:""}`],[avg==null?"–":avg.toFixed(1),"Average days from turn-in to return"]].map(([n,l])=>`<div class="tile"><b>${esc(n)}</b><span>${esc(l)}</span></div>`).join("");
+  const v=visitInfo||{},n=k=>Math.max(0,Number(v[k])||0);
+  $("#visitLine").textContent=!API?"Site visits are counted on the live site, not in demo mode.":visitInfo?`Site visits: ${n("today")} today · ${n("week")} in the last 7 days · ${n("month")} in the last 30 days. Counted once per browser session; who visited isn't recorded.`:"";
   bars($("#byPlace"),"place");bars($("#byCat"),"cat");
 }
 function bars(el,key){
@@ -636,6 +691,60 @@ function bars(el,key){
 }
 const renderAll=()=>{renderBoard();renderMine();renderWho();renderStaff()};
 ["#q","#fCat","#fPlace","#fClaimed"].forEach(s=>$(s).addEventListener("input",renderBoard));
+
+/* ---------- share an item, and open a shared link ---------- */
+let toastT;
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove("on"),4500)}
+async function shareItem(it){
+  const url=location.href.split("#")[0]+"#item-"+it.id;
+  const text=`Is this yours? ${it.name} (${it.tag}) was turned in to the NU Las Piñas Security Office.`;
+  if(navigator.share){try{await navigator.share({title:`Found: ${it.name}`,text,url});return}catch(e){if(e&&e.name==="AbortError")return}}
+  try{await navigator.clipboard.writeText(url);toast("Link copied. Send it to the owner or post it in your group chat.")}
+  catch(e){toast("Copy this link: "+url)}
+}
+function focusHash(){
+  const m=location.hash.match(/^#item-([\w-]+)$/);if(!m)return;
+  const it=items.find(i=>i.id===m[1]);
+  if(!it){toast("That item isn't on the board anymore. Ask the Security Office about it.");return}
+  if(!visible().includes(it)){$("#q").value="";$("#fCat").value="";$("#fPlace").value="";if(it.status==="claimed")$("#fClaimed").checked=true;renderBoard()}
+  if(it.status==="claimed")toast("This item was already claimed by its owner.");
+  const el=document.getElementById("item-"+it.id);if(!el)return;
+  el.scrollIntoView({block:"center"});el.classList.remove("hl");void el.offsetWidth;el.classList.add("hl");setTimeout(()=>el.classList.remove("hl"),2600);
+}
+addEventListener("hashchange",focusHash);
+
+/* ---------- staff: pickup and the printed release slip ---------- */
+const dtFmt=t=>t?new Date(t).toLocaleString("en-PH",{timeZone:TZ,year:"numeric",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"";
+function openSlip(c,it){
+  it=it||items.find(i=>i.id===c?.itemId)||{name:c?.itemName,tag:c?.tag};
+  const row=(l,v)=>`<tr><th>${l}</th><td>${v?esc(v):'<span class="blank"></span>'}</td></tr>`;
+  $("#slip").innerHTML=`<h2 id="slipTitle">Release slip</h2><p class="slipsub">NULP Lost &amp; Found · Security Office, NU Las Piñas</p>
+    <table>${row("Tag",it.tag)}${row("Item",it.name)}${row("Category",it.cat)}${row("Found",[it.place,it.date?fmt(it.date):""].filter(Boolean).join(", "))}${c?row("Claim reference",c.cid):""}${row("Released to",c?.name)}${row("Student number",c?.studentNo)}${row("Contact",c?.contact)}${c?row("Claim approved",dtFmt(c.decidedAt)):""}${row("Released on",dtFmt(c?.pickedUpAt||new Date().toISOString()))}${row("NU ID checked","☐ Yes    ☐ No")}</table>
+    <div class="sigs"><div><span></span>Owner's signature</div><div><span></span>Staff name and signature</div></div>
+    <p class="note">File this slip with the Security Office's lost-and-found records.</p>`;
+  openM("#ovSlip","#slipPrint");
+}
+async function markPickup(cid){
+  const c=allClaims.find(x=>x.cid===cid);if(!c)return;
+  if(API){const d=await staffCall("pickup",{cid});if(d.claim)Object.assign(c,d.claim)}
+  else if(!c.pickedUpAt)c.pickedUpAt=new Date().toISOString();
+  renderStaff();openSlip(c);
+}
+$("#slipPrint").addEventListener("click",()=>{document.body.classList.add("printslip");print()});
+addEventListener("afterprint",()=>document.body.classList.remove("printslip"));
+
+/* ---------- staff: warn when emails aren't going out ---------- */
+function mailNote(){
+  if(!API||!mailInfo)return "";
+  const p=mailInfo.problem&&typeof mailInfo.problem==="object"?mailInfo.problem:null,out=[];
+  const when=p&&p.at?` (${dtFmt(p.at)})`:"";
+  if(p?.kind==="permission")out.push(`<b>Emails aren't being sent.</b> Google hasn't given the NULPLF script permission to send email${when}. To fix it: open the Google Sheet, click Extensions → Apps Script → Run, then Review permissions and allow “Send email as you”.`);
+  else if(p?.kind==="quota")out.push(`<b>Today's email limit is used up${when}.</b> Emails start again tomorrow. Students can still see their results under My requests.`);
+  else if(p?.kind==="error")out.push(`<b>The last email couldn't be sent${when}.</b> ${esc(p.message||"")}`);
+  if(mailInfo.alertSet===false)out.push(`<b>No staff alert email is set</b>, so staff don't get “New claim” emails. To fix it: in the Google Sheet, click NULPLF → Set alert email.`);
+  if(typeof mailInfo.quota==="number"&&mailInfo.quota<10&&p?.kind!=="quota")out.push(`Only ${mailInfo.quota} emails left today.`);
+  return out.join("<br>");
+}
 
 /* ---------- helpers ---------- */
 const show=(el,t)=>{el.textContent=t;el.classList.remove("hide")};
@@ -687,10 +796,13 @@ document.addEventListener("click",e=>{
   if(b.dataset.claim){const it=items.find(i=>i.id===b.dataset.claim);if(it)requireProfile(()=>openClaim(it));return}
   if(b.dataset.edit){startEdit(b.dataset.edit);return}
   if(b.dataset.unreport){stopAlerts(b.dataset.unreport,b);return}
+  if(b.dataset.share){const it=items.find(i=>i.id===b.dataset.share);if(it)shareItem(it);return}
+  if(b.dataset.slip){const c=allClaims.find(x=>x.cid===b.dataset.slip);if(c)openSlip(c);return}
   const act=fn=>{b.disabled=true;$("#staffMsg").classList.add("hide");fn().catch(err=>{b.disabled=false;if(err?.code!=="login_expired")staffErr()})};
   if(b.dataset.ok)act(()=>decide(b.dataset.ok,"approved"));
   if(b.dataset.no)act(()=>decide(b.dataset.no,"rejected"));
-  if(b.dataset.release)act(()=>releaseItem(b.dataset.release));
+  if(b.dataset.pickup)act(()=>markPickup(b.dataset.pickup));
+  if(b.dataset.release){const it=items.find(i=>i.id===b.dataset.release);act(async()=>{await releaseItem(b.dataset.release);if(it)openSlip(null,it)})}
   if(b.dataset.del){const it=items.find(i=>i.id===b.dataset.del);if(it&&confirm(`Remove ${it.tag} (${it.name}) from the board? This can't be undone.`))act(()=>removeItem(it.id))}
 });
 
@@ -771,7 +883,7 @@ async function processPhoto(file,blur){
   }finally{URL.revokeObjectURL(url)}
 }
 async function updatePhoto(){
-  const run=++photoRun,f=$("#sPhoto").files[0],p=$("#sPrev"),n=$("#sPhotoNote");
+  const run=++photoRun,f=photoFile,p=$("#sPrev"),n=$("#sPhotoNote");
   if(pendingPhoto)URL.revokeObjectURL(pendingPhoto.url);pendingPhoto=null;
   if(!f){p.classList.add("hide");n.classList.add("hide");return}
   const blur=$("#sBlur").checked;
@@ -780,21 +892,25 @@ async function updatePhoto(){
     show(n,`Shrunk from ${size(f.size)} to ${size(blob.size)}${blur?" and blurred":""}. This is how it will be posted.`);
   }catch(err){if(run!==photoRun)return;p.classList.add("hide");show(n,"This photo couldn't be read. Try a JPG or PNG.")}
 }
-$("#sPhoto").addEventListener("change",updatePhoto);
+/* Two ways to add a photo: choose a file, or (on phones) "Take photo" opens the camera directly. */
+$("#sPhoto").addEventListener("change",e=>{photoFile=e.target.files[0]||null;$("#sCam").value="";updatePhoto()});
+$("#sCam").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;photoFile=f;$("#sPhoto").value="";updatePhoto()});
+$("#sCamBtn").addEventListener("click",()=>$("#sCam").click());
+if(matchMedia("(pointer:coarse)").matches)$("#sCamBtn").classList.remove("hide");
 $("#sBlur").addEventListener("change",updatePhoto);
 $("#sCat").addEventListener("change",()=>{$("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);updatePhoto()});
 let editingId=null;
 function startEdit(id){
   const it=items.find(i=>i.id===id);if(!it)return;editingId=id;
   $("#sName").value=it.name||"";$("#sCat").value=CATS.includes(it.cat)?it.cat:"Other";$("#sPlace").value=PLACES.includes(it.place)?it.place:"Other";$("#sDate").value=String(it.date||today).slice(0,10);$("#sDesc").value=it.desc||"";
-  $("#sPhoto").value="";if(pendingPhoto)URL.revokeObjectURL(pendingPhoto.url);pendingPhoto=null;$("#sPrev").classList.add("hide");$("#sPhotoNote").classList.add("hide");
+  $("#sPhoto").value="";$("#sCam").value="";photoFile=null;if(pendingPhoto)URL.revokeObjectURL(pendingPhoto.url);pendingPhoto=null;$("#sPrev").classList.add("hide");$("#sPhotoNote").classList.add("hide");
   $("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);
   const src=photoSrc(it);$("#sCurWrap").classList.toggle("hide",!src);if(src)$("#sCur").src=src;$("#sRmPhoto").checked=false;
   $("#fTitle").textContent=`Edit ${it.tag}`;$("#foundBtn").textContent="Save changes";$("#editCancel").classList.remove("hide");$("#foundMsg").classList.add("hide");
   $("#foundForm").scrollIntoView({block:"start"});$("#sName").focus({preventScroll:true});
 }
 function endEdit(){
-  editingId=null;$("#foundForm").reset();$("#sDate").value=today;$("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);
+  editingId=null;$("#foundForm").reset();photoFile=null;$("#sDate").value=today;$("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);
   if(pendingPhoto)URL.revokeObjectURL(pendingPhoto.url);pendingPhoto=null;
   $("#sPrev").classList.add("hide");$("#sPhotoNote").classList.add("hide");$("#sCurWrap").classList.add("hide");
   $("#fTitle").textContent="Post a found item";$("#foundBtn").textContent="Post item";$("#editCancel").classList.add("hide");
@@ -817,12 +933,14 @@ if(API){
   loadMine();staffToken=local.get(STAFF_KEY,true);staffIn=!!staffToken;
   $("#srcNote").textContent="Loading found items…";renderAll();pull();
   setInterval(()=>{if(!document.hidden)pull()},60000);
+  /* Count this visit once per browser session (a number per day; nothing about who). Staff aren't counted. */
+  if(!staffIn&&!local.get("nulplf.visit",true)){local.set("nulplf.visit",1,true);call("visit",{}).catch(()=>{})}
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull()});
 }else{
   if(API_URL.trim()&&!DEMO_LINK)console.warn("API_URL should be a Google Apps Script web app link ending in /exec. Running in demo mode.");
   items=SAMPLE.map(x=>({...x}));allClaims=SAMPLE_CLAIMS.map(c=>expired(c)?purge(c):{...c});
   $("#srcNote").textContent="Demo mode: these are sample items, and changes reset when you reload. Security Office staff log in from Sign in or the Staff login link at the bottom.";
-  renderAll();
+  renderAll();hashDone=true;focusHash();
 }
 }
 </script>

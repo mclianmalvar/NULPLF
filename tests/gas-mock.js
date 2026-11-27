@@ -16,7 +16,7 @@ function makeEnv(){
   const ctx={
     console,
     SpreadsheetApp:{getActive:()=>ss,getUi:()=>{if(!uiAvailable)throw new Error('Cannot call getUi from this context');}},
-    PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]??null,setProperty:(k,v)=>{props[k]=String(v)},setProperties:o=>Object.assign(props,o)})},
+    PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]??null,setProperty:(k,v)=>{props[k]=String(v)},setProperties:o=>Object.assign(props,o),deleteProperty:k=>{delete props[k]}})},
     CacheService:{getScriptCache:()=>({get:k=>cache[k]??null,put:(k,v)=>{cache[k]=v},remove:k=>{delete cache[k]}})},
     LockService:{getScriptLock:()=>({waitLock(){},tryLock(){return true},releaseLock(){}})},
     Utilities:{getUuid:()=>crypto.randomUUID(),sleep(){},DigestAlgorithm:{SHA_256:'sha256'},Charset:{UTF_8:'utf8'},
