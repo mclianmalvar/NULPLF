@@ -58,7 +58,20 @@ With `API_URL` empty, the page runs in demo mode with sample items and the demo 
 - Photos are saved in a Drive folder called **NULPLF photos**, shared view-only by link so the
   page can show them. IDs and wallets are blurred before they're uploaded.
 
+## Emails
+
+- Staff get an email for every new claim. It goes to the Google account that owns the sheet;
+  to use another address, click **NULPLF → Set alert email** in the sheet.
+- Students who sign in with an email address get the result of their claim, and an email when
+  an item matching their lost-item report is posted. Students who give a mobile number don't
+  get emails; they check **My requests** on the site.
+- Emails are sent from the sheet owner's Google account, up to Google's daily limit for free
+  accounts (about 100 a day).
+- Lost-item reports for email alerts are kept in the **Reports** tab for 30 days, or until the
+  student clicks **Stop alerts**.
+
 ## Changing the script later
 
 After editing `Code.gs`: **Deploy → Manage deployments → pencil icon → Version: New version →
-Deploy**. The `/exec` link stays the same, so the website doesn't need changing.
+Deploy**. If Google asks for permission again (for example, to send email), click **Allow**.
+The `/exec` link stays the same, so the website doesn't need changing.

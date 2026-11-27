@@ -2,25 +2,34 @@
  * NULPLF API: the Google Apps Script backend for the NULPLF lost-and-found page.
  *
  * The Google Sheet is the database:
- *   Items tab   found items. Public: every student's page pulls these.
- *               Staff can also type a row here by hand; the API fills in the ID and tag.
- *   Claims tab  claim requests with the claimant's details. Only staff can read these,
- *               and the details are deleted 30 days after a claim is closed.
+ *   Items tab    found items. Public: every student's page pulls these.
+ *                Staff can also type a row here by hand; the API fills in the ID and tag.
+ *   Claims tab   claim requests with the claimant's details. Only staff can read these,
+ *                and the details are deleted 30 days after a claim is closed.
+ *   Reports tab  lost-item reports from students who want an email when a possible match
+ *                is posted. Deleted after 30 days, or when the student stops alerts.
  *
- * Setup (once), see SETUP.md for screenshots-free steps:
+ * Emails (sent from the Google account that owns this sheet):
+ *   staff     get one for every new claim (NULPLF > Set alert email to change the address)
+ *   students  get the result of their claim, and match alerts for their lost-item reports
+ *
+ * Setup (once), see SETUP.md:
  *   1. In the Google Sheet: Extensions > Apps Script. Replace everything with this file. Save.
- *   2. Reload the sheet. Use the new NULPLF menu: "Set up sheets", then "Set staff login".
- *   3. In Apps Script: Deploy > New deployment > Web app.
- *      Execute as: Me. Who has access: Anyone. Copy the web app URL (it ends in /exec).
- *   4. Put that URL in API_URL at the top of the script in index.html.
+ *   2. Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone.
+ *   3. Reload the sheet and use NULPLF > Set staff login.
+ * After changing this file: Deploy > Manage deployments > Edit > Version: New version > Deploy.
  */
 
+const SITE_URL = "https://nulplf.netlify.app";  // the website, linked in emails
+const OFFICE_INFO = "the Security Office (ground floor, near the main gate), Monday to Saturday, 7:00 AM to 8:00 PM";
 const TZ = "Asia/Manila";
-const KEEP_DAYS = 30;                    // claimant details are deleted this many days after a claim closes
+const KEEP_DAYS = 30;                    // claimant details and lost-item reports are deleted after this many days
 const SESSION_SECONDS = 6 * 60 * 60;     // staff stay logged in up to 6 hours (the CacheService maximum)
 const MAX_PENDING_PER_STUDENT = 3;
+const MAX_REPORTS_PER_DAY = 5;
 const ITEM_COLS = ["id", "tag", "name", "cat", "place", "date", "desc", "status", "photoId", "blurred", "postedAt", "releasedAt"];
 const CLAIM_COLS = ["cid", "itemId", "itemName", "tag", "name", "studentNo", "contact", "proof", "consent", "status", "at", "decidedAt", "purged"];
+const REPORT_COLS = ["rid", "name", "email", "cat", "date", "item", "place", "at", "notified"];
 const CATS = ["ID", "Umbrella", "Charger", "Tumbler", "Calculator", "Flash drive", "Notebook", "Earphones", "Bag", "Wallet", "Other"];
 const PLACES = ["Main lobby", "Library", "Canteen", "Gym", "Computer labs", "Classrooms, 2nd floor", "Classrooms, 3rd floor", "Classrooms, 4th floor", "Comfort rooms", "Parking area", "Other"];
 
@@ -30,13 +39,14 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu("NULPLF")
     .addItem("Set up sheets", "setup")
     .addItem("Set staff login", "setStaffLogin")
+    .addItem("Set alert email", "setAlertEmail")
     .addToUi();
 }
 
 function setup() {
   autoSetup_();
   photoFolder_();
-  tell_("The Items and Claims tabs are ready. Next: NULPLF > Set staff login.");
+  tell_("The Items, Claims and Reports tabs are ready. Next: NULPLF > Set staff login.");
 }
 
 // Also runs by itself the first time the website calls the API, so the menu step is optional.
@@ -44,6 +54,7 @@ function autoSetup_() {
   const ss = SpreadsheetApp.getActive();
   if (!ss.getSheetByName("Items")) prepareSheet_(ss, "Items", ITEM_COLS);
   if (!ss.getSheetByName("Claims")) prepareSheet_(ss, "Claims", CLAIM_COLS);
+  if (!ss.getSheetByName("Reports")) prepareSheet_(ss, "Reports", REPORT_COLS);
   try {
     if (!ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === "purgeOldClaims")) {
       ScriptApp.newTrigger("purgeOldClaims").timeBased().everyDays(1).atHour(2).inTimezone(TZ).create();
@@ -73,6 +84,16 @@ function setStaffLogin() {
   ui.alert("Staff login saved. The password is stored only as a hash, never as plain text.");
 }
 
+function setAlertEmail() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt("Email for new-claim alerts", "Staff get an email here whenever a student sends a claim.\nNow: " + (alertEmail_() || "none"), ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const v = r.getResponseText().trim();
+  if (!isEmail_(v)) { ui.alert("That doesn't look like an email address."); return; }
+  PropertiesService.getScriptProperties().setProperty("ALERT_EMAIL", v);
+  ui.alert("New-claim alerts will go to " + v + ".");
+}
+
 function tell_(msg) {
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
 }
@@ -99,13 +120,15 @@ function doGet(e) {
   }
 }
 
-// POST { action: "claim" | "status" | "login" | "staff", ... }
+// POST { action: "claim" | "status" | "report" | "unreport" | "login" | "staff", ... }
 function doPost(e) {
   let req;
   try { req = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: "bad_request" }); }
   try {
     if (req.action === "claim") return out_(claim_(req));
     if (req.action === "status") return out_(statuses_(req));
+    if (req.action === "report") return out_(report_(req));
+    if (req.action === "unreport") return out_(unreport_(req));
     if (req.action === "login") return out_(login_(req));
     if (req.action === "staff") return out_(staff_(req));
     return out_({ ok: false, error: "unknown_action" });
@@ -122,6 +145,7 @@ function out_(o) {
 
 function listItems_() {
   let rows = rows_("Items", ITEM_COLS).filter(r => str_(r.name));
+  const added = [];
   if (rows.some(r => !str_(r.id) || !str_(r.tag))) {
     // A staff member typed a row by hand: give it an ID and a tag number.
     withLock_(() => {
@@ -134,9 +158,11 @@ function listItems_() {
         if (!str_(r.postedAt)) r.postedAt = new Date().toISOString();
         r.date = day_(r.date); r.status = status_(r.status); r.cat = pick_(r.cat, CATS); r.place = pick_(r.place, PLACES);
         save_("Items", ITEM_COLS, r);
+        added.push(r);
       });
     });
   }
+  added.forEach(notifyMatches_);
   return rows.map(publicItem_);
 }
 
@@ -149,28 +175,35 @@ function publicItem_(r) {
   };
 }
 
-/* ----- public: send a claim, check claim status ----- */
+/* ----- public: claims ----- */
 
+// Several students can claim the same item; staff compare the answers and approve one.
 function claim_(req) {
   const name = str_(req.name, 80), no = str_(req.studentNo, 20), contact = str_(req.contact, 120), proof = str_(req.proof, 1000);
   if (req.consent !== true) return { ok: false, error: "no_consent" };
   if (name.length < 2 || !/^\d{4}-\d{4,8}$/.test(no) || contact.length < 3 || proof.length < 3) return { ok: false, error: "missing_fields" };
-  return withLock_(() => {
-    const it = rows_("Items", ITEM_COLS).filter(r => str_(r.id) && str_(r.id) === str_(req.itemId, 40))[0];
+  const res = withLock_(() => {
+    const it = findItem_(req.itemId);
     if (!it) return { ok: false, error: "not_found" };
-    if (status_(it.status) !== "available") return { ok: false, error: "not_available" };
-    const pending = rows_("Claims", CLAIM_COLS).filter(c => str_(c.studentNo) === no && cstatus_(c.status) === "pending").length;
-    if (pending >= MAX_PENDING_PER_STUDENT) return { ok: false, error: "too_many" };
-    const cid = "CL-" + Utilities.getUuid().replace(/-/g, "").slice(0, 8).toUpperCase();
-    add_("Claims", CLAIM_COLS, {
-      cid, itemId: str_(it.id), itemName: str_(it.name), tag: str_(it.tag),
+    if (status_(it.status) === "claimed") return { ok: false, error: "not_available" };
+    const claims = rows_("Claims", CLAIM_COLS);
+    const mine = claims.filter(c => str_(c.studentNo) === no && cstatus_(c.status) === "pending");
+    if (mine.some(c => str_(c.itemId) === str_(it.id))) return { ok: false, error: "already_claimed" };
+    if (mine.length >= MAX_PENDING_PER_STUDENT) return { ok: false, error: "too_many" };
+    const claim = {
+      cid: "CL-" + Utilities.getUuid().replace(/-/g, "").slice(0, 8).toUpperCase(),
+      itemId: str_(it.id), itemName: str_(it.name), tag: str_(it.tag),
       name, studentNo: no, contact, proof, consent: true,
       status: "pending", at: new Date().toISOString(), decidedAt: "", purged: false
-    });
-    it.status = "pending";
-    save_("Items", ITEM_COLS, it);
-    return { ok: true, cid };
+    };
+    add_("Claims", CLAIM_COLS, claim);
+    if (status_(it.status) !== "pending") { it.status = "pending"; save_("Items", ITEM_COLS, it); }
+    const open = claims.filter(c => str_(c.itemId) === str_(it.id) && cstatus_(c.status) === "pending").length + 1;
+    return { ok: true, claim, open };
   });
+  if (!res.ok) return res;
+  notifyStaffNewClaim_(res.claim, res.open);
+  return { ok: true, cid: res.claim.cid };
 }
 
 // Students know only their own claim references, and get back only the status: no personal details.
@@ -182,6 +215,36 @@ function statuses_(req) {
     if (id && want.indexOf(id) >= 0) out[id] = { status: cstatus_(c.status), decidedAt: iso_(c.decidedAt), purged: bool_(c.purged) };
   });
   return { ok: true, statuses: out };
+}
+
+/* ----- public: lost-item reports for match alerts ----- */
+
+function report_(req) {
+  const name = str_(req.name, 80), email = str_(req.email, 120), item = str_(req.item, 120);
+  if (req.consent !== true) return { ok: false, error: "no_consent" };
+  if (name.length < 2 || !isEmail_(email) || !item) return { ok: false, error: "missing_fields" };
+  return withLock_(() => {
+    const dayAgo = Date.now() - 864e5;
+    const recent = rows_("Reports", REPORT_COLS).filter(r => str_(r.email).toLowerCase() === email.toLowerCase() && Date.parse(iso_(r.at)) > dayAgo).length;
+    if (recent >= MAX_REPORTS_PER_DAY) return { ok: false, error: "too_many" };
+    const rid = "LR-" + Utilities.getUuid().replace(/-/g, "").slice(0, 12).toUpperCase();
+    add_("Reports", REPORT_COLS, {
+      rid, name, email, cat: pick_(req.cat, CATS), date: day_(req.date), item,
+      place: str_(req.place) ? pick_(req.place, PLACES) : "", at: new Date().toISOString(), notified: ""
+    });
+    return { ok: true, rid };
+  });
+}
+
+// "Stop alerts": deletes the report from the sheet.
+function unreport_(req) {
+  const rid = str_(req.rid, 20);
+  if (!rid) return { ok: false, error: "bad_request" };
+  return withLock_(() => {
+    const r = rows_("Reports", REPORT_COLS).filter(x => str_(x.rid) === rid)[0];
+    if (r) sheet_("Reports").deleteRow(r._row);
+    return { ok: true };
+  });
 }
 
 /* ----- staff login: the password is checked here, on Google's server ----- */
@@ -213,8 +276,9 @@ function staff_(req) {
         sheetUrl: SpreadsheetApp.getActive().getUrl() // staff only: for the "Open Google Sheet" button
       };
     case "post": return postItem_(req);
+    case "edit": return editItem_(req);
     case "decide": return decide_(req);
-    case "release": return updateItem_(req.itemId, it => { it.status = "claimed"; it.releasedAt = new Date().toISOString(); });
+    case "release": return releaseItem_(req.itemId);
     case "remove": return removeItem_(req.itemId);
     case "logout": cache.remove(key); return { ok: true };
   }
@@ -231,69 +295,125 @@ function staffClaim_(c) {
   };
 }
 
+function savePhoto_(photo, name) {
+  if (!photo || !photo.data) return null;
+  const data = String(photo.data);
+  if (data.length > 4000000) { const e = new Error("photo_too_big"); e.code = "photo_too_big"; throw e; }
+  const file = photoFolder_().createFile(Utilities.newBlob(Utilities.base64Decode(data), "image/jpeg", name.slice(0, 40) + ".jpg"));
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); // so the page can show it
+  return { id: file.getId(), blurred: photo.blurred === true };
+}
+
+function trashPhoto_(id) {
+  if (str_(id)) { try { DriveApp.getFileById(str_(id)).setTrashed(true); } catch (e) { /* already gone */ } }
+}
+
 function postItem_(req) {
   const i = req.item || {}, name = str_(i.name, 120);
   if (!name) return { ok: false, error: "missing_fields" };
-  let photoId = "", blurred = false;
-  if (req.photo && req.photo.data) {
-    const data = String(req.photo.data);
-    if (data.length > 4000000) return { ok: false, error: "photo_too_big" };
-    const file = photoFolder_().createFile(Utilities.newBlob(Utilities.base64Decode(data), "image/jpeg", name.slice(0, 40) + ".jpg"));
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); // so the page can show it
-    photoId = file.getId();
-    blurred = req.photo.blurred === true;
-  }
-  return withLock_(() => {
-    const it = {
+  let photo;
+  try { photo = savePhoto_(req.photo, name); } catch (e) { return { ok: false, error: e.code || "server_error" }; }
+  const it = withLock_(() => {
+    const row = {
       id: newId_("i"), tag: tag_(nextTagNo_(rows_("Items", ITEM_COLS))), name,
       cat: pick_(i.cat, CATS), place: pick_(i.place, PLACES), date: day_(i.date), desc: str_(i.desc, 500),
-      status: "available", photoId, blurred, postedAt: new Date().toISOString(), releasedAt: ""
+      status: "available", photoId: photo ? photo.id : "", blurred: photo ? photo.blurred : false,
+      postedAt: new Date().toISOString(), releasedAt: ""
     };
-    add_("Items", ITEM_COLS, it);
-    return { ok: true, item: publicItem_(it) };
+    add_("Items", ITEM_COLS, row);
+    return row;
   });
+  notifyMatches_(it);
+  return { ok: true, item: publicItem_(it) };
 }
 
+function editItem_(req) {
+  const i = req.item || {}, name = str_(i.name, 120);
+  if (!name) return { ok: false, error: "missing_fields" };
+  let photo;
+  try { photo = savePhoto_(req.photo, name); } catch (e) { return { ok: false, error: e.code || "server_error" }; }
+  const res = withLock_(() => {
+    const it = findItem_(req.itemId);
+    if (!it) return { ok: false, error: "not_found" };
+    const oldPhoto = str_(it.photoId);
+    it.name = name; it.cat = pick_(i.cat, CATS); it.place = pick_(i.place, PLACES); it.date = day_(i.date); it.desc = str_(i.desc, 500);
+    let trash = "";
+    if (photo) { it.photoId = photo.id; it.blurred = photo.blurred; trash = oldPhoto; }
+    else if (req.removePhoto === true) { it.photoId = ""; it.blurred = false; trash = oldPhoto; }
+    save_("Items", ITEM_COLS, it);
+    return { ok: true, it, trash };
+  });
+  if (!res.ok) { if (photo) trashPhoto_(photo.id); return res; }
+  trashPhoto_(res.trash);
+  notifyMatches_(res.it);
+  return { ok: true, item: publicItem_(res.it) };
+}
+
+// Approving one claim closes the other open claims for the same item.
 function decide_(req) {
   const status = req.status === "approved" ? "approved" : req.status === "rejected" ? "rejected" : "";
   if (!status) return { ok: false, error: "bad_request" };
-  return withLock_(() => {
+  const res = withLock_(() => {
     const c = rows_("Claims", CLAIM_COLS).filter(x => str_(x.cid) === str_(req.cid, 20))[0];
     if (!c) return { ok: false, error: "not_found" };
     if (cstatus_(c.status) !== "pending") return { ok: false, error: "already_closed" };
     const now = new Date().toISOString();
     c.status = status; c.decidedAt = now;
     save_("Claims", CLAIM_COLS, c);
-    const it = rows_("Items", ITEM_COLS).filter(r => str_(r.id) === str_(c.itemId))[0];
-    if (it) {
-      if (status === "approved") { it.status = "claimed"; it.releasedAt = now; } else { it.status = "available"; }
+    const it = findItem_(c.itemId);
+    let closed = [];
+    if (status === "approved") {
+      closed = closePending_(str_(c.itemId), now);
+      if (it) { it.status = "claimed"; it.releasedAt = now; save_("Items", ITEM_COLS, it); }
+    } else if (it && status_(it.status) !== "claimed") {
+      const left = rows_("Claims", CLAIM_COLS).filter(x => str_(x.itemId) === str_(c.itemId) && cstatus_(x.status) === "pending").length;
+      it.status = left ? "pending" : "available";
       save_("Items", ITEM_COLS, it);
     }
-    return { ok: true };
+    return { ok: true, decided: c, closed };
   });
+  if (!res.ok) return res;
+  notifyClaimant_(res.decided, status);
+  res.closed.forEach(x => notifyClaimant_(x, "rejected"));
+  return { ok: true };
 }
 
-function updateItem_(id, change) {
-  return withLock_(() => {
-    const it = rows_("Items", ITEM_COLS).filter(r => str_(r.id) && str_(r.id) === str_(id, 40))[0];
+// "Mark claimed": the owner picked it up at the office. Open online claims for it are closed.
+function releaseItem_(id) {
+  const res = withLock_(() => {
+    const it = findItem_(id);
     if (!it) return { ok: false, error: "not_found" };
-    change(it);
+    const now = new Date().toISOString();
+    it.status = "claimed"; it.releasedAt = now;
     save_("Items", ITEM_COLS, it);
-    return { ok: true };
+    return { ok: true, closed: closePending_(str_(it.id), now) };
   });
+  if (!res.ok) return res;
+  res.closed.forEach(x => notifyClaimant_(x, "rejected"));
+  return { ok: true };
 }
 
 function removeItem_(id) {
-  return withLock_(() => {
-    const it = rows_("Items", ITEM_COLS).filter(r => str_(r.id) && str_(r.id) === str_(id, 40))[0];
+  const res = withLock_(() => {
+    const it = findItem_(id);
     if (!it) return { ok: false, error: "not_found" };
     sheet_("Items").deleteRow(it._row);
-    if (str_(it.photoId)) { try { DriveApp.getFileById(str_(it.photoId)).setTrashed(true); } catch (e) { /* already gone */ } }
-    return { ok: true };
+    return { ok: true, photo: str_(it.photoId), closed: closePending_(str_(it.id), new Date().toISOString()) };
   });
+  if (!res.ok) return res;
+  trashPhoto_(res.photo);
+  res.closed.forEach(x => notifyClaimant_(x, "rejected"));
+  return { ok: true };
 }
 
-/* Runs daily (set up by setup) and whenever staff open the claims list. */
+// Closes every open claim for an item. Call inside withLock_.
+function closePending_(itemId, now) {
+  return rows_("Claims", CLAIM_COLS)
+    .filter(c => str_(c.itemId) === itemId && cstatus_(c.status) === "pending")
+    .map(c => { c.status = "rejected"; c.decidedAt = now; save_("Claims", CLAIM_COLS, c); return c; });
+}
+
+/* Runs daily (set up automatically) and whenever staff open the claims list. */
 function purgeOldClaims() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) return;
@@ -306,7 +426,77 @@ function purgeOldClaims() {
         save_("Claims", CLAIM_COLS, c);
       }
     });
+    rows_("Reports", REPORT_COLS).reverse().forEach(r => {   // bottom-up so row numbers stay right
+      const at = Date.parse(iso_(r.at));
+      if (str_(r.rid) && at && at <= cutoff) sheet_("Reports").deleteRow(r._row);
+    });
   } finally { lock.releaseLock(); }
+}
+
+/* ===================== Emails ===================== */
+
+function notifyStaffNewClaim_(c, open) {
+  send_(alertEmail_(), "New claim: " + str_(c.itemName) + " (" + str_(c.tag) + ")",
+    str_(c.name) + " sent a claim for " + str_(c.itemName) + " (" + str_(c.tag) + ")." +
+    (open > 1 ? "\nThis item now has " + open + " claims to compare." : "") +
+    "\n\nLog in to the Staff panel to approve or reject it:\n" + SITE_URL + "\n\nNULPLF Lost and Found");
+}
+
+function notifyClaimant_(c, status) {
+  const to = str_(c.contact, 120);
+  if (!isEmail_(to)) return;
+  const item = str_(c.itemName) + " (" + str_(c.tag) + ")";
+  if (status === "approved") {
+    send_(to, "Approved: pick up your " + str_(c.itemName),
+      "Hi " + first_(c.name) + ",\n\nGood news: your claim for " + item + " was approved.\n\n" +
+      "Pick it up at " + OFFICE_INFO + ". Bring your NU ID and your claim reference " + str_(c.cid) + ".\n\n" +
+      SITE_URL + "\n\nNULPLF Lost and Found");
+  } else {
+    send_(to, "Update on your claim for " + str_(c.itemName),
+      "Hi " + first_(c.name) + ",\n\nYour claim for " + item + " wasn't approved.\n\n" +
+      "If you think this is a mistake, visit " + OFFICE_INFO + " and mention reference " + str_(c.cid) + ".\n\n" +
+      SITE_URL + "\n\nNULPLF Lost and Found");
+  }
+}
+
+// Emails students whose lost-item report matches a newly posted item (same category, lost on or before the found date).
+function notifyMatches_(it) {
+  if (!it || status_(it.status) === "claimed") return;
+  const id = str_(it.id), cat = pick_(it.cat, CATS), found = day_(it.date);
+  const toSend = withLock_(() => {
+    const out = [];
+    rows_("Reports", REPORT_COLS).forEach(r => {
+      if (!str_(r.rid) || pick_(r.cat, CATS) !== cat || day_(r.date) > found) return;
+      const done = str_(r.notified, 2000).split(",").filter(Boolean);
+      if (done.indexOf(id) >= 0) return;
+      done.push(id);
+      r.notified = done.slice(-30).join(",");
+      save_("Reports", REPORT_COLS, r);
+      out.push({ to: str_(r.email), name: str_(r.name), lost: str_(r.item), lostOn: day_(r.date) });
+    });
+    return out;
+  });
+  toSend.slice(0, 50).forEach(m => send_(m.to, "Possible match for your " + m.lost,
+    "Hi " + first_(m.name) + ",\n\nThe Security Office just posted an item that may be yours:\n\n" +
+    "  " + str_(it.name) + " (" + str_(it.tag) + ")\n  Found at " + pick_(it.place, PLACES) + " on " + found + "\n\n" +
+    "If it's yours, open the site and click \"This is mine\":\n" + SITE_URL + "/#item-" + id + "\n\n" +
+    "You're getting this because you reported a lost " + m.lost + " (" + m.lostOn + "). " +
+    "To stop these emails, open My requests on the site and click Stop alerts.\n\nNULPLF Lost and Found"));
+}
+
+function send_(to, subject, body) {
+  if (!isEmail_(to)) return false;
+  try {
+    if (MailApp.getRemainingDailyQuota() < 1) return false;
+    MailApp.sendEmail({ to: to, subject: subject, body: body, name: "NULPLF Lost and Found" });
+    return true;
+  } catch (e) { return false; } // an email problem never blocks the action itself
+}
+
+function alertEmail_() {
+  const set = PropertiesService.getScriptProperties().getProperty("ALERT_EMAIL");
+  if (set) return set;
+  try { return Session.getEffectiveUser().getEmail(); } catch (e) { return ""; }
 }
 
 /* ===================== Helpers ===================== */
@@ -335,6 +525,11 @@ function rows_(name, cols) {
   });
 }
 
+function findItem_(id) {
+  const want = str_(id, 40);
+  return want ? rows_("Items", ITEM_COLS).filter(r => str_(r.id) === want)[0] : undefined;
+}
+
 function save_(name, cols, o) {
   sheet_(name).getRange(o._row, 1, 1, cols.length).setValues([cols.map(c => cell_(o[c]))]);
 }
@@ -352,6 +547,8 @@ function add_(name, cols, o) {
 function cell_(v) { return v === undefined || v === null ? "" : typeof v === "boolean" ? String(v) : v; }
 function str_(v, max) { return String(v === undefined || v === null ? "" : v).trim().slice(0, max || 500); }
 function bool_(v) { return v === true || String(v).toLowerCase() === "true"; }
+function isEmail_(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str_(v, 200)); }
+function first_(name) { return str_(name, 80).split(/\s+/)[0] || "there"; }
 function hash_(s) { return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8)); }
 function newId_(p) { return p + Utilities.getUuid().replace(/-/g, "").slice(0, 12); }
 function tag_(n) { return "LF-" + String(n).padStart(4, "0"); }
@@ -377,7 +574,8 @@ function day_(v) {
 function status_(v) {
   const s = str_(v, 20).toLowerCase();
   if (s === "available" || s === "pending" || s === "claimed") return s;
-  if (s === "returned" || s === "released" || s === "claim pending") return s === "claim pending" ? "pending" : "claimed";
+  if (s === "claim pending") return "pending";
+  if (s === "returned" || s === "released") return "claimed";
   return "available";
 }
 

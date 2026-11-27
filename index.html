@@ -143,6 +143,17 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
 .msg{padding:12px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line);margin-top:12px;font-size:15px}
 .hide{display:none!important}
 .prev{max-height:160px;max-width:100%;border-radius:8px;margin-top:6px}
+.clist{display:grid;gap:14px;margin-top:12px}
+.cgroup{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg)}
+.citem{display:grid;grid-template-columns:104px minmax(0,1fr);gap:12px;padding:12px;background:var(--panel);align-items:start}
+.citem p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+.cthumb{aspect-ratio:10/7;border-radius:6px;overflow:hidden;background:#fff8ea;border:1px solid var(--kraftd);display:grid;place-items:center}
+.cthumb a,.cthumb img{display:block;width:100%;height:100%}.cthumb img{object-fit:cover}
+.cthumb svg{width:80%;height:80%}
+.citem .cnote{color:var(--red);font-weight:600}
+.cclaim{padding:12px;border-top:1px solid var(--line);display:grid;gap:8px;font-size:15px}
+.cclaim .act{display:flex;flex-wrap:wrap;gap:8px}
+.proof{margin:0;background:var(--panel);border-left:3px solid var(--ok);padding:8px 10px;border-radius:0 8px 8px 0}
 .btnlink{display:inline-flex;align-items:center;gap:8px;min-height:44px;margin-top:14px;padding:10px 18px;border-radius:10px;border:1.5px solid var(--ok);color:var(--ok);font-weight:600;text-decoration:none}
 .btnlink:hover{background:var(--panel)}
 .btnlink svg{width:20px;height:20px}
@@ -208,7 +219,7 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
         <div class="f"><label for="lItem">What is it?</label><input id="lItem" required placeholder="Blue Aqua Flask tumbler, 32 oz"></div>
         <div class="f"><label for="lPlace">Where do you think you lost it?</label><select id="lPlace"></select></div>
         <div class="f"><label for="lDesc">Details <small>(color, brand, stickers, contents)</small></label><textarea id="lDesc" required></textarea></div>
-        <label class="consent"><input type="checkbox" id="lConsent"><span><b>I agree</b> that my details are used only to find and return my item, following the Data Privacy Act of 2012 (RA 10173). Only I can see this report.</span></label>
+        <label class="consent"><input type="checkbox" id="lConsent"><span><b>I agree</b> that my details are used only to find and return my item, following the Data Privacy Act of 2012 (RA 10173). If I signed in with an email, the Security Office keeps this report for 30 days to email me about possible matches.</span></label>
         <button type="submit" id="lostBtn">Submit report</button>
         <div id="lostMsg" class="msg hide" role="status"></div>
       </form>
@@ -241,7 +252,7 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
     <div id="staffMsg" class="msg hide" role="status"></div>
     <div class="two">
       <form class="card" id="foundForm" novalidate>
-        <h3 style="margin-bottom:14px">Post a found item</h3>
+        <h3 style="margin-bottom:14px" id="fTitle">Post a found item</h3>
         <div class="f"><label for="sName">Item</label><input id="sName" required placeholder="Black umbrella with wooden handle"></div>
         <div class="g2">
           <div class="f"><label for="sCat">Category</label><select id="sCat"></select></div>
@@ -250,18 +261,21 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
         <div class="f"><label for="sPlace">Where found</label><select id="sPlace"></select></div>
         <div class="f"><label for="sDesc">Public description <small>(leave out details only the owner should know)</small></label><textarea id="sDesc"></textarea></div>
         <div class="f">
-          <label for="sPhoto">Photo <small>(optional, shrunk before upload)</small></label><input id="sPhoto" type="file" accept="image/*">
+          <label for="sPhoto">Photo <small>(optional, shrunk before upload)</small></label>
+          <div id="sCurWrap" class="hide"><img id="sCur" class="prev" alt="Current photo" referrerpolicy="no-referrer"><label class="chk" style="white-space:normal"><input type="checkbox" id="sRmPhoto"> Remove the current photo</label></div>
+          <input id="sPhoto" type="file" accept="image/*">
           <label class="chk" style="white-space:normal"><input type="checkbox" id="sBlur"> Blur photo before posting</label>
           <small>Turned on for IDs and wallets, so names, faces and numbers can't be read.</small>
           <img id="sPrev" class="prev hide" alt="Photo as it will be posted">
           <small id="sPhotoNote" class="hide"></small>
         </div>
-        <button type="submit" id="foundBtn">Post item</button>
+        <div style="display:flex;flex-wrap:wrap;gap:10px"><button type="submit" id="foundBtn">Post item</button><button type="button" class="alt hide" id="editCancel">Cancel editing</button></div>
         <div id="foundMsg" class="msg hide" role="status"></div>
       </form>
       <div>
-        <h3>Claim requests</h3>
-        <div class="scroll"><table class="stack" id="claimTbl"><thead><tr><th>Item</th><th>Claimant</th><th>Proof</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+        <h3 id="claimHead">Claim requests</h3>
+        <p class="lead" id="claimLead" style="font-size:15px;margin:6px 0 0"></p>
+        <div class="clist" id="claimList"></div>
         <h3 style="margin-top:28px">Closed claims</h3>
         <p class="lead" style="font-size:15px;margin:6px 0 4px">Claimant details are deleted automatically 30 days after a claim is closed.</p>
         <div class="scroll"><table class="stack" id="closedTbl"><thead><tr><th>Item</th><th>Claimant</th><th>Result</th><th>Closed</th></tr></thead><tbody></tbody></table></div>
@@ -287,11 +301,11 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
       <details><summary>Who posts the items?</summary><p>Only Security Office staff. They log in with a staff account to post the items turned in at the office, approve claims and release items. Students can search, claim and report, but can't post or change items.</p></details>
       <details><summary>How do I prove an item is mine?</summary><p>When you claim, describe something not shown in the post: a sticker, what's inside, a scratch, the lock screen. At pickup, show your NU ID. Staff release the item only when the details match.</p></details>
       <details><summary>Why can't I see the full details of an item?</summary><p>Posts leave out identifying details on purpose, so only the real owner can describe them. Photos of IDs and wallets are blurred before they're posted, and IDs show the name but not the student number.</p></details>
-      <details><summary>What happens to my personal details?</summary><p>Only Security Office staff see your name, student number, contact details and proof of ownership, and only to process your claim. They're deleted automatically 30 days after your claim is closed, following the Data Privacy Act of 2012 (RA 10173). Your sign-in details and lost-item reports stay on your own phone; they're sent to the office only when you claim an item.</p></details>
+      <details><summary>What happens to my personal details?</summary><p>Only Security Office staff see your name, student number, contact details and proof of ownership, and only to process your claim. They're deleted automatically 30 days after your claim is closed, following the Data Privacy Act of 2012 (RA 10173). Your sign-in details stay on your own phone and are sent to the office only when you claim an item. If you report a lost item while signed in with an email, the office keeps that report for 30 days to email you about matches; you can stop it anytime under My requests.</p></details>
       <details><summary>Why do I need to sign in?</summary><p>So the Security Office knows who is claiming and how to reach you, without you typing your details every time. In this prototype you enter your name and student number once. The full version would use your NU email login instead.</p></details>
       <details><summary>How long are items kept?</summary><p>Items are kept for 30 days. After that, staff mark them for disposal or donation, so check early.</p></details>
       <details><summary>I found something. What do I do?</summary><p>Bring it to the Security Office. Staff will tag it and post it here the same day.</p></details>
-      <details><summary>Will I get notified?</summary><p>File a report and check My requests. Possible matches appear there as soon as a similar item is posted.</p></details>
+      <details><summary>Will I get notified?</summary><p>Yes, if you sign in with an email address. You get an email when your claim is approved or not, and when an item that may be yours is posted after you report it. Possible matches also appear under My requests.</p></details>
     </div>
   </div>
 </section>
@@ -312,7 +326,7 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
     <form id="claimForm" novalidate style="margin-top:16px">
       <div class="who" id="cWho"></div>
       <div class="f"><label for="cProof">Something only the owner would know</label><textarea id="cProof" required placeholder="There's a sticker under the cap and my initials JDC on the bottom."></textarea></div>
-      <label class="consent"><input type="checkbox" id="cConsent"><span><b>I agree</b> that the Security Office uses my name, student number and contact details only to check this claim. They're deleted 30 days after the claim is closed (Data Privacy Act of 2012, RA 10173).</span></label>
+      <label class="consent"><input type="checkbox" id="cConsent"><span><b>I agree</b> that the Security Office uses my name, student number and contact details only to check this claim and tell me the result. They're deleted 30 days after the claim is closed (Data Privacy Act of 2012, RA 10173).</span></label>
       <button type="submit" id="cBtn" class="red">Send claim request</button>
     </form>
     <div id="cMsg" class="msg hide" role="status"></div>
@@ -328,7 +342,7 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
     <form id="signForm" novalidate style="margin-top:16px">
       <div class="f"><label for="pName">Full name</label><input id="pName" required autocomplete="name" placeholder="Juan Dela Cruz"></div>
       <div class="f"><label for="pNo">Student number <small>(the dash is added for you)</small></label><input id="pNo" required inputmode="numeric" autocomplete="off" placeholder="2025-123456" maxlength="13"></div>
-      <div class="f"><label for="pContact">NU email or mobile number</label><input id="pContact" required placeholder="Your NU email or 09XX XXX XXXX"></div>
+      <div class="f"><label for="pContact">Email or mobile number <small>(use an email to get updates by email)</small></label><input id="pContact" required autocomplete="email" placeholder="Your NU email or 09XX XXX XXXX"></div>
       <div style="display:flex;flex-wrap:wrap;gap:10px"><button type="submit" id="pBtn">Continue</button><button type="button" class="alt hide" id="signOut">Sign out</button></div>
     </form>
     <form id="staffForm" class="hide" novalidate style="margin-top:16px">
@@ -396,6 +410,7 @@ const SAMPLE=[
  {id:"h7",tag:"LF-0145",name:"Gray hoodie",cat:"Other",place:"Gym",date:ago(45),desc:"Size M, no print.",status:"claimed",releasedAt:stampAgo(41)}];
 const SAMPLE_CLAIMS=[
  {cid:"CL-7Q2M",itemId:"s3",itemName:"White 20W phone charger",tag:"LF-0158",name:"Paolo Reyes",studentNo:"2024-104233",contact:"preyes@example.edu",proof:"There's a strip of yellow tape on the cable near the plug.",status:"pending",at:stampAgo(1)},
+ {cid:"CL-3PN7",itemId:"s3",itemName:"White 20W phone charger",tag:"LF-0158",name:"Kyla Ramos",studentNo:"2025-127790",contact:"kramos@example.edu",proof:"It's a white charger with a cable, I lost it in the library.",status:"pending",at:stampAgo(0)},
  {cid:"CL-4KD8",itemId:"s6",itemName:"Black 64GB flash drive",tag:"LF-0154",name:"Bea Villanueva",studentNo:"2023-118560",contact:"bvillanueva@example.edu",proof:"Has a folder named THESIS-FINAL-v3 with our Chapter 2.",status:"approved",at:stampAgo(7),decidedAt:stampAgo(6)},
  {cid:"CL-9VX1",itemId:"h1",itemName:"Blue Aqua Flask tumbler",tag:"LF-0152",name:"Carlo Mendoza",studentNo:"2025-120417",contact:"cmendoza@example.edu",proof:"Dent on the bottom and a cat sticker under the lid.",status:"approved",at:stampAgo(11),decidedAt:stampAgo(10)},
  {cid:"CL-6TR3",itemId:"h4",itemName:"Brown leather wallet",tag:"LF-0149",name:"Andrea Cruz",studentNo:"2023-101775",contact:"acruz@example.edu",proof:"Brown bifold with my library card and a beep card inside.",status:"approved",at:stampAgo(21),decidedAt:stampAgo(20)},
@@ -475,6 +490,9 @@ function syncMine(list){
 /* ---------- actions: the API when connected, memory in demo mode ---------- */
 async function sendClaim(it,proof){
   const p=my.profile,at=new Date().toISOString();let cid;
+  const fail=code=>{const e=new Error(code);e.code=code;return e};
+  if(my.claims.some(c=>c.itemId===it.id&&c.status==="pending"))throw fail("already_claimed");
+  if(!API&&it.status==="claimed")throw fail("not_available");
   if(API){cid=(await call("claim",{itemId:it.id,name:p.name,studentNo:p.studentNo,contact:p.contact,proof,consent:true})).cid}
   else{cid=newId("CL");allClaims.push({cid,itemId:it.id,itemName:it.name,tag:it.tag,name:p.name,studentNo:p.studentNo,contact:p.contact,proof,status:"pending",at})}
   my.claims.push({cid,itemId:it.id,itemName:it.name,tag:it.tag,status:"pending",at});it.status="pending";saveMine();renderAll();pull();
@@ -483,15 +501,31 @@ async function sendClaim(it,proof){
 async function decide(cid,status){
   if(API){await staffCall("decide",{cid,status});return pull()}
   const c=allClaims.find(x=>x.cid===cid);if(!c||c.status!=="pending")return;const at=new Date().toISOString();Object.assign(c,{status,decidedAt:at});
-  const it=items.find(i=>i.id===c.itemId);if(it)Object.assign(it,status==="approved"?{status:"claimed",releasedAt:at}:{status:"available"});renderAll();
+  const it=items.find(i=>i.id===c.itemId);
+  if(status==="approved"){closeDemoClaims(c.itemId,at);if(it)Object.assign(it,{status:"claimed",releasedAt:at})}
+  else if(it&&it.status!=="claimed")it.status=allClaims.some(x=>x.itemId===c.itemId&&x.status==="pending")?"pending":"available";
+  renderAll();
 }
+/* Demo mode: approving or releasing an item closes its other open claims, like the real API. */
+const closeDemoClaims=(itemId,at)=>allClaims.filter(x=>x.itemId===itemId&&x.status==="pending").forEach(x=>Object.assign(x,{status:"rejected",decidedAt:at}));
 async function releaseItem(id){
   if(API){await staffCall("release",{itemId:id});return pull()}
-  const it=items.find(i=>i.id===id);if(it)Object.assign(it,{status:"claimed",releasedAt:new Date().toISOString()});renderAll();
+  const it=items.find(i=>i.id===id),at=new Date().toISOString();if(it)Object.assign(it,{status:"claimed",releasedAt:at});closeDemoClaims(id,at);renderAll();
 }
 async function removeItem(id){
   if(API){await staffCall("remove",{itemId:id});return pull()}
-  items=items.filter(i=>i.id!==id);renderAll();
+  items=items.filter(i=>i.id!==id);closeDemoClaims(id,new Date().toISOString());renderAll();
+}
+async function editItem(id,fields,ph,removePhoto){
+  if(API){const photo=ph?{data:await toB64(ph.blob),blurred:ph.blurred}:null;await staffCall("edit",{itemId:id,item:fields,photo,removePhoto:!!removePhoto});return pull()}
+  const it=items.find(i=>i.id===id);if(!it){const e=new Error("not_found");e.code="not_found";throw e}
+  Object.assign(it,fields);if(ph){it.photoUrl=ph.url;it.blurred=ph.blurred}else if(removePhoto){delete it.photoUrl;it.blurred=false}
+  renderAll();
+}
+async function stopAlerts(rid,b){
+  b.disabled=true;
+  try{if(API)await call("unreport",{rid});for(const r of my.reports)if(r.alertId===rid)delete r.alertId;saveMine();renderMine()}
+  catch(e){b.disabled=false;b.textContent="Couldn't stop alerts. Try again"}
 }
 const toB64=blob=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=()=>rej(r.error);r.readAsDataURL(blob)});
 async function postItem(fields,ph){
@@ -522,14 +556,14 @@ function renderBoard(){
     <h3>${esc(i.name)}</h3>
     <div class="meta">${esc(i.place)} · <span class="nw">${fmt(i.date)}</span></div>
     ${i.desc?`<div class="desc">${esc(i.desc)}</div>`:""}
-    <div class="foot"><span class="badge b-${esc(i.status)}">${esc(statusText[i.status]||i.status)}</span>${i.status==="available"&&!staffIn?`<button type="button" data-claim="${esc(i.id)}">This is mine</button>`:""}</div>
+    <div class="foot"><span class="badge b-${esc(i.status)}">${esc(statusText[i.status]||i.status)}</span>${i.status!=="claimed"&&!staffIn?(my.claims.some(c=>c.itemId===i.id&&c.status==="pending")?`<button type="button" disabled>Claim sent</button>`:`<button type="button" data-claim="${esc(i.id)}">This is mine</button>`):""}</div>
   </article>`}).join(""):`<div class="empty">${items.length?"No items match. Try another category, or":"Nothing has been posted yet. You can"} <a href="#report">report your lost item</a> so you see it when it's turned in.</div>`;
 }
-function matchesFor(r){return items.filter(i=>i.status==="available"&&i.cat===r.cat&&i.date>=r.date)}
+function matchesFor(r){return items.filter(i=>i.status!=="claimed"&&i.cat===r.cat&&i.date>=r.date)}
 function renderMine(){
   if(!API)syncMine(allClaims);
   const rs=my.reports||[],cs=my.claims||[];let n=0;
-  const rHtml=rs.slice().reverse().map(r=>{const m=matchesFor(r);n+=m.length;return `<div class="req"><div class="h"><b>${esc(r.item)}</b><span class="badge b-available" style="border:1px solid var(--line)">Report · ${fmt(r.date)}</span></div><p>${esc(r.cat)}${r.place?" · "+esc(r.place):""}</p>${m.map(i=>`<div class="match"><span>Possible match: <b>${esc(i.name)}</b> (${esc(i.tag)}), ${esc(i.place)}</span><a href="#item-${esc(i.id)}">View tag</a></div>`).join("")}</div>`}).join("");
+  const rHtml=rs.slice().reverse().map(r=>{const m=matchesFor(r);n+=m.length;return `<div class="req"><div class="h"><b>${esc(r.item)}</b><span class="badge b-available" style="border:1px solid var(--line)">Report · ${fmt(r.date)}</span></div><p>${esc(r.cat)}${r.place?" · "+esc(r.place):""}</p>${r.alertId?`<p>Email alerts on · <button type="button" class="link" data-unreport="${esc(r.alertId)}">Stop alerts</button></p>`:""}${m.map(i=>`<div class="match"><span>Possible match: <b>${esc(i.name)}</b> (${esc(i.tag)}), ${esc(i.place)}</span><a href="#item-${esc(i.id)}">View tag</a></div>`).join("")}</div>`}).join("");
   const cHtml=cs.slice().reverse().map(c=>`<div class="req"><div class="h"><b>${esc(c.itemName)}</b><span class="badge ${c.status==="approved"?"b-available":c.status==="rejected"?"b-claimed":"b-pending"}" style="border:1px solid var(--line)">${c.status==="approved"?"Approved: pick up now":c.status==="rejected"?"Not approved":"Claim pending"}</span></div><p>Ref ${esc(c.cid)} · ${esc(c.tag)}${c.status==="approved"?" · Bring your NU ID to the Security Office.":c.status==="rejected"?" · Visit the Security Office if you think this is a mistake.":" · Staff will check your details."}</p></div>`).join("");
   const body=staffIn?"":(cHtml+rHtml);
   $("#mineList").innerHTML=body||`<div class="req"><p style="margin:0">${staffIn?"You're logged in as staff. Students' claims appear in the Staff panel.":"Nothing yet. Claims and reports you send appear here."}</p></div>`;
@@ -549,11 +583,16 @@ function renderStaff(){
   $("#sheetLink").classList.toggle("hide",!su);if(su)$("#sheetLink").href=su;
   $("#staffLead").textContent=API?"Logged in as Security Office staff. Items you post show up on every student's phone within a minute.":"Demo mode: logged in as Security Office staff. Changes reset when you reload.";
   const pend=allClaims.filter(c=>c.status==="pending");
-  $("#claimTbl tbody").innerHTML=pend.length?pend.map(c=>`<tr><td><b>${esc(c.itemName)}</b><br><span class="nw">${esc(c.tag)}</span></td><td>${esc(c.name)}<br>${esc(c.studentNo)}<br>${esc(c.contact)}</td><td>${esc(c.proof)}</td><td><div class="act"><button type="button" data-ok="${esc(c.cid)}">Approve</button><button type="button" class="alt" data-no="${esc(c.cid)}">Reject</button></div></td></tr>`).join(""):`<tr><td colspan="4">No pending claims.</td></tr>`;
+  $("#claimLead").textContent="Compare each answer with the item. Approving one claim closes the others for that item"+(API?", and claimants with an email get the result by email.":".");
+  $("#claimHead").textContent=pend.length?`Claim requests (${pend.length})`:"Claim requests";
+  const groups={};for(const c of pend)(groups[c.itemId]=groups[c.itemId]||[]).push(c);
+  $("#claimList").innerHTML=pend.length?Object.entries(groups).map(([id,cs])=>{
+    const it=items.find(i=>i.id===id)||{name:cs[0].itemName,tag:cs[0].tag,cat:"Other"},src=photoSrc(it);
+    return `<div class="cgroup"><div class="citem"><div class="cthumb">${src?`<a href="${esc(src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="Photo of ${esc(it.name)}" referrerpolicy="no-referrer"></a>`:icon(it.cat)}</div><div><b>${esc(it.name)}</b><p>${esc(it.tag)}${it.place?` · ${esc(it.place)}`:""}${it.date?` · found ${fmt(it.date)}`:""}</p>${it.desc?`<p>${esc(it.desc)}</p>`:""}${cs.length>1?`<p class="cnote">${cs.length} people claim this item. Compare their answers.</p>`:""}</div></div>${cs.map(c=>`<div class="cclaim"><div><b>${esc(c.name)}</b> · ${esc(c.studentNo)} · ${esc(c.contact)}${c.at?` <span class="muted">· sent ${fmt(ymd(c.at))}</span>`:""}</div><p class="proof"><span class="muted">Their proof:</span> ${esc(c.proof)}</p><div class="act"><button type="button" data-ok="${esc(c.cid)}">Approve</button><button type="button" class="alt" data-no="${esc(c.cid)}">Reject</button></div></div>`).join("")}</div>`}).join(""):`<p class="muted" style="margin:0">No pending claims.</p>`;
   const closed=allClaims.filter(c=>c.status!=="pending").sort((a,b)=>String(b.decidedAt||"").localeCompare(String(a.decidedAt||""))).slice(0,8);
   $("#closedTbl tbody").innerHTML=closed.length?closed.map(c=>{const d=c.decidedAt?days(ymd(c.decidedAt)):0,left=Math.max(0,KEEP_DAYS-d);return `<tr><td><b>${esc(c.itemName)}</b><br><span class="nw">${esc(c.tag)}</span></td><td>${c.purged?`<span class="muted">Details deleted after ${KEEP_DAYS} days</span>`:`${esc(c.name)}<br>${esc(c.studentNo)}`}</td><td>${c.status==="approved"?"Approved":"Rejected"}</td><td class="nw">${c.decidedAt?fmt(ymd(c.decidedAt)):""}${c.purged?"":`<span class="sub">Details deleted in ${left} day${left===1?"":"s"}</span>`}</td></tr>`}).join(""):`<tr><td colspan="4">No closed claims yet.</td></tr>`;
   const inv=items.filter(i=>i.status!=="claimed").sort((a,b)=>String(a.date).localeCompare(String(b.date)));
-  $("#invTbl tbody").innerHTML=inv.length?inv.map(i=>{const d=days(i.date);return `<tr><td class="nw">${esc(i.tag)}</td><td>${esc(i.name)}</td><td class="nw">${fmt(i.date)}</td><td class="nw ${d>=HOLD_DAYS?"old":""}">${d} day${d===1?"":"s"}${d>=HOLD_DAYS?" · past 30":""}</td><td>${esc(statusText[i.status]||i.status)}</td><td><div class="act"><button type="button" class="alt" data-release="${esc(i.id)}">Mark claimed</button><button type="button" class="alt" data-del="${esc(i.id)}">Remove</button></div></td></tr>`}).join(""):`<tr><td colspan="6">No items on hand.</td></tr>`;
+  $("#invTbl tbody").innerHTML=inv.length?inv.map(i=>{const d=days(i.date);return `<tr><td class="nw">${esc(i.tag)}</td><td>${esc(i.name)}</td><td class="nw">${fmt(i.date)}</td><td class="nw ${d>=HOLD_DAYS?"old":""}">${d} day${d===1?"":"s"}${d>=HOLD_DAYS?" · past 30":""}</td><td>${esc(statusText[i.status]||i.status)}</td><td><div class="act"><button type="button" class="alt" data-edit="${esc(i.id)}">Edit</button><button type="button" class="alt" data-release="${esc(i.id)}">Mark claimed</button><button type="button" class="alt" data-del="${esc(i.id)}">Remove</button></div></td></tr>`}).join(""):`<tr><td colspan="6">No items on hand.</td></tr>`;
   renderStats();
 }
 function renderStats(){
@@ -576,6 +615,7 @@ const renderAll=()=>{renderBoard();renderMine();renderWho();renderStaff()};
 const show=(el,t)=>{el.textContent=t;el.classList.remove("hide")};
 const filled=ids=>ids.map(id=>{const e=$(id);const ok=e.value.trim()!=="";e.setAttribute("aria-invalid",ok?"false":"true");return ok}).every(Boolean);
 const newId=p=>p+"-"+Math.random().toString(36).slice(2,8).toUpperCase();
+const isEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").trim());
 const fmtNo=v=>{const d=v.replace(/\D/g,"").slice(0,12);return d.length>4?d.slice(0,4)+"-"+d.slice(4):d};
 const staffErr=()=>show($("#staffMsg"),"Couldn't save that change. Check your connection and try again.");
 
@@ -619,6 +659,8 @@ document.addEventListener("click",e=>{
   if(b.hasAttribute("data-close")){closeM();return}
   if(b.hasAttribute("data-sign")){openSign(null,b.dataset.sign||undefined);return}
   if(b.dataset.claim){const it=items.find(i=>i.id===b.dataset.claim);if(it)requireProfile(()=>openClaim(it));return}
+  if(b.dataset.edit){startEdit(b.dataset.edit);return}
+  if(b.dataset.unreport){stopAlerts(b.dataset.unreport,b);return}
   const act=fn=>{b.disabled=true;$("#staffMsg").classList.add("hide");fn().catch(err=>{b.disabled=false;if(err?.code!=="login_expired")staffErr()})};
   if(b.dataset.ok)act(()=>decide(b.dataset.ok,"approved"));
   if(b.dataset.no)act(()=>decide(b.dataset.no,"rejected"));
@@ -641,7 +683,7 @@ $("#signForm").addEventListener("submit",e=>{
 $("#signOut").addEventListener("click",()=>{my=blankMe();demoKey=null;if(API)local.del(ME_KEY);closeM();renderAll()});
 function staffLogout(silent){
   if(API&&staffToken&&!silent)call("staff",{op:"logout",token:staffToken}).catch(()=>{});
-  staffToken=null;local.del(STAFF_KEY,true);staffIn=false;sheetUrl="";if(API)allClaims=[];renderAll();
+  staffToken=null;local.del(STAFF_KEY,true);staffIn=false;sheetUrl="";if(API)allClaims=[];endEdit();renderAll();
 }
 $("#staffForm").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -667,18 +709,25 @@ $("#claimForm").addEventListener("submit",async e=>{
   if(!$("#cConsent").checked){show($("#cMsg"),"Tick the consent box so staff can use your details for this claim.");return}
   $("#cBtn").disabled=true;
   try{const cid=await sendClaim(claimItem,$("#cProof").value.trim());
-    $("#claimForm").classList.add("hide");show($("#cMsg"),`Claim sent. Your reference is ${cid}. Staff will check your details; once approved, bring your NU ID to the Security Office.`);
-  }catch(err){show($("#cMsg"),err.code==="not_available"?"Someone else has already claimed this item, so staff are checking it first. Visit the Security Office if it's yours.":err.code==="too_many"?"You already have 3 claims waiting. Wait for staff to check them first.":err.code==="not_found"?"This item was just removed from the board. Visit the Security Office to ask about it.":"Couldn't send the claim right now. Check your connection and try again.")}
+    $("#claimForm").classList.add("hide");show($("#cMsg"),`Claim sent. Your reference is ${cid}. Staff will check your details;${API&&isEmail(my.profile?.contact)?` we'll email ${my.profile.contact} with the result.`:" check My requests for the result."} Once approved, bring your NU ID to the Security Office.`);
+  }catch(err){show($("#cMsg"),err.code==="not_available"?"This item can't be claimed online right now. Visit the Security Office if it's yours.":err.code==="already_claimed"?"You already sent a claim for this item. Staff will check it soon.":err.code==="too_many"?"You already have 3 claims waiting. Wait for staff to check them first.":err.code==="not_found"?"This item was just removed from the board. Visit the Security Office to ask about it.":"Couldn't send the claim right now. Check your connection and try again.")}
   $("#cBtn").disabled=false;
 });
-$("#lostForm").addEventListener("submit",e=>{
+$("#lostForm").addEventListener("submit",async e=>{
   e.preventDefault();
   if(!my.profile){openSign(()=>$("#lostForm").requestSubmit(),"student");return}
   if(!filled(["#lItem","#lDesc","#lDate"])){show($("#lostMsg"),"Please fill in the fields marked in red.");return}
   if(!$("#lConsent").checked){show($("#lostMsg"),"Tick the consent box to save your report.");return}
-  const r={rid:newId("LR"),cat:$("#lCat").value,date:$("#lDate").value,item:$("#lItem").value.trim(),place:$("#lPlace").value,desc:$("#lDesc").value.trim(),at:new Date().toISOString()};
+  const p=my.profile,r={id:newId("LR"),cat:$("#lCat").value,date:$("#lDate").value,item:$("#lItem").value.trim(),place:$("#lPlace").value,desc:$("#lDesc").value.trim(),at:new Date().toISOString()};
+  let note="";
+  if(API&&isEmail(p.contact)){
+    $("#lostBtn").disabled=true;
+    try{r.alertId=(await call("report",{name:p.name,email:p.contact,cat:r.cat,date:r.date,item:r.item,place:r.place,consent:true})).rid;note=` We'll email ${p.contact} if a possible match is posted.`}
+    catch(err){note=err.code==="too_many"?" You've sent many reports today, so email alerts are off for this one.":" Email alerts couldn't be turned on right now, but your report is saved on this phone."}
+    $("#lostBtn").disabled=false;
+  }else if(API)note=" Sign in with an email address to also get match alerts by email.";
   my.reports.push(r);saveMine();const m=matchesFor(r).length;
-  show($("#lostMsg"),m?`Report saved. ${m} possible match${m>1?"es are":" is"} already posted: see My requests.`:"Report saved. No match yet. Check My requests for new matches.");
+  show($("#lostMsg"),(m?`Report saved. ${m} possible match${m>1?"es are":" is"} already posted: see My requests.`:"Report saved. No match yet.")+note);
   $("#lostForm").reset();$("#lDate").value=today;renderMine();
 });
 
@@ -708,14 +757,32 @@ async function updatePhoto(){
 $("#sPhoto").addEventListener("change",updatePhoto);
 $("#sBlur").addEventListener("change",updatePhoto);
 $("#sCat").addEventListener("change",()=>{$("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);updatePhoto()});
+let editingId=null;
+function startEdit(id){
+  const it=items.find(i=>i.id===id);if(!it)return;editingId=id;
+  $("#sName").value=it.name||"";$("#sCat").value=CATS.includes(it.cat)?it.cat:"Other";$("#sPlace").value=PLACES.includes(it.place)?it.place:"Other";$("#sDate").value=String(it.date||today).slice(0,10);$("#sDesc").value=it.desc||"";
+  $("#sPhoto").value="";if(pendingPhoto)URL.revokeObjectURL(pendingPhoto.url);pendingPhoto=null;$("#sPrev").classList.add("hide");$("#sPhotoNote").classList.add("hide");
+  $("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);
+  const src=photoSrc(it);$("#sCurWrap").classList.toggle("hide",!src);if(src)$("#sCur").src=src;$("#sRmPhoto").checked=false;
+  $("#fTitle").textContent=`Edit ${it.tag}`;$("#foundBtn").textContent="Save changes";$("#editCancel").classList.remove("hide");$("#foundMsg").classList.add("hide");
+  $("#foundForm").scrollIntoView({block:"start"});$("#sName").focus({preventScroll:true});
+}
+function endEdit(){
+  editingId=null;$("#foundForm").reset();$("#sDate").value=today;$("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);
+  if(pendingPhoto)URL.revokeObjectURL(pendingPhoto.url);pendingPhoto=null;
+  $("#sPrev").classList.add("hide");$("#sPhotoNote").classList.add("hide");$("#sCurWrap").classList.add("hide");
+  $("#fTitle").textContent="Post a found item";$("#foundBtn").textContent="Post item";$("#editCancel").classList.add("hide");
+}
+$("#editCancel").addEventListener("click",()=>{endEdit();$("#foundMsg").classList.add("hide")});
 $("#foundForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!filled(["#sName","#sDate"])){show($("#foundMsg"),"Add the item name and date found.");return}
   $("#foundBtn").disabled=true;
   const fields={name:$("#sName").value.trim(),cat:$("#sCat").value,place:$("#sPlace").value,date:$("#sDate").value,desc:$("#sDesc").value.trim()};
-  try{const ph=pendingPhoto,tag=await postItem(fields,ph);
-    if(ph&&API)URL.revokeObjectURL(ph.url);pendingPhoto=null;
-    show($("#foundMsg"),`Posted as ${tag}.`);$("#foundForm").reset();$("#sDate").value=today;$("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);$("#sPrev").classList.add("hide");$("#sPhotoNote").classList.add("hide");
-  }catch(err){if(err?.code!=="login_expired")show($("#foundMsg"),err?.code==="photo_too_big"?"The photo is too big. Try a smaller one.":"Couldn't post the item. Check your connection and try again.")}
+  try{const ph=pendingPhoto,id=editingId;let msg;
+    if(id){const it=items.find(i=>i.id===id);await editItem(id,fields,ph,$("#sRmPhoto").checked);msg=`Saved changes to ${it?it.tag:"the item"}.`}
+    else msg=`Posted as ${await postItem(fields,ph)}.`;
+    if(ph&&API)URL.revokeObjectURL(ph.url);pendingPhoto=null;endEdit();show($("#foundMsg"),msg);
+  }catch(err){if(err?.code!=="login_expired")show($("#foundMsg"),err?.code==="photo_too_big"?"The photo is too big. Try a smaller one.":err?.code==="not_found"?"That item was removed, so it can't be edited.":"Couldn't save the item. Check your connection and try again.")}
   $("#foundBtn").disabled=false;
 });
 
