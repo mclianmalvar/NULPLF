@@ -207,7 +207,11 @@ function staff_(req) {
   switch (req.op) {
     case "claims":
       purgeOldClaims();
-      return { ok: true, claims: rows_("Claims", CLAIM_COLS).filter(c => str_(c.cid)).map(staffClaim_) };
+      return {
+        ok: true,
+        claims: rows_("Claims", CLAIM_COLS).filter(c => str_(c.cid)).map(staffClaim_),
+        sheetUrl: SpreadsheetApp.getActive().getUrl() // staff only: for the "Open Google Sheet" button
+      };
     case "post": return postItem_(req);
     case "decide": return decide_(req);
     case "release": return updateItem_(req.itemId, it => { it.status = "claimed"; it.releasedAt = new Date().toISOString(); });

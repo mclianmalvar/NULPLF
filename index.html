@@ -143,6 +143,9 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
 .msg{padding:12px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line);margin-top:12px;font-size:15px}
 .hide{display:none!important}
 .prev{max-height:160px;max-width:100%;border-radius:8px;margin-top:6px}
+.btnlink{display:inline-flex;align-items:center;gap:8px;min-height:44px;margin-top:14px;padding:10px 18px;border-radius:10px;border:1.5px solid var(--ok);color:var(--ok);font-weight:600;text-decoration:none}
+.btnlink:hover{background:var(--panel)}
+.btnlink svg{width:20px;height:20px}
 @media(max-width:900px){.hero,.two,.charts{grid-template-columns:minmax(0,1fr)}footer .cols{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:760px){nav{padding-block:10px;gap:8px 10px}.menu-btn{display:inline-flex}nav .links{display:none;order:3;flex-basis:100%;flex-direction:column;gap:0}nav.open .links{display:flex}nav .links a{padding:12px 2px;border-top:1px solid rgb(255 255 255/.14)}.logo{font-size:20px}.sign-btn{max-width:9em}}
 @media(max-width:420px){.menu-btn .mtxt{display:none}.menu-btn{padding-inline:11px}}
@@ -234,6 +237,7 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
   <div class="wrap">
     <h2>Security Office: post and release items</h2>
     <p class="lead" id="staffLead">Only staff accounts see this panel.</p>
+    <a class="btnlink hide" id="sheetLink" href="#" target="_blank" rel="noopener"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="2.5" width="14" height="15" rx="2"/><path d="M3 7.5h14M3 12.5h14M8.5 7.5v10"/></svg>Open Google Sheet<span class="hide">(opens in a new tab)</span></a>
     <div id="staffMsg" class="msg hide" role="status"></div>
     <div class="two">
       <form class="card" id="foundForm" novalidate>
@@ -415,7 +419,7 @@ $("#lDate").value=today;$("#sDate").value=today;$("#lDate").max=today;$("#sDate"
 $("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);
 
 const blankMe=()=>({profile:null,reports:[],claims:[]});
-let items=[],allClaims=[],my=blankMe(),staffIn=false,staffToken=null,claimItem=null,pendingPhoto=null,afterSign=null,photoRun=0,loaded=!API,pulling=null,demoKey=null;
+let items=[],allClaims=[],my=blankMe(),staffIn=false,staffToken=null,claimItem=null,pendingPhoto=null,afterSign=null,photoRun=0,loaded=!API,pulling=null,demoKey=null,sheetUrl="";
 const demoStore={};
 const expired=c=>!!c.decidedAt&&!c.purged&&days(ymd(c.decidedAt))>=KEEP_DAYS;
 const purge=c=>({...c,name:"",studentNo:"",contact:"",proof:"",purged:true});
@@ -453,7 +457,7 @@ function pull(){
     catch(e){$("#srcNote").textContent=loaded?"Couldn't reach the Security Office list just now. Showing the last items loaded.":"Couldn't load the found items. Check your connection, then reload the page."}
     const open=my.claims.filter(c=>!c.purged).map(c=>c.cid).slice(-50);
     if(open.length){try{const d=await call("status",{cids:open});if(syncMine(Object.entries(d.statuses||{}).map(([cid,s])=>({cid,...s}))))saveMine()}catch(e){}}
-    if(staffIn){try{const d=await staffCall("claims");allClaims=Array.isArray(d.claims)?d.claims:[]}catch(e){}}
+    if(staffIn){try{const d=await staffCall("claims");allClaims=Array.isArray(d.claims)?d.claims:[];sheetUrl=typeof d.sheetUrl==="string"&&/^https:\/\/docs\.google\.com\/spreadsheets\//.test(d.sheetUrl)?d.sheetUrl:""}catch(e){}}
     renderAll();
   })().finally(()=>{pulling=null});
   return pulling;
@@ -538,6 +542,7 @@ function renderWho(){
 }
 function renderStaff(){
   $("#staffLink").classList.toggle("hide",!staffIn);$("#staff").classList.toggle("hide",!staffIn);if(!staffIn)return;
+  $("#sheetLink").classList.toggle("hide",!sheetUrl);if(sheetUrl)$("#sheetLink").href=sheetUrl;
   $("#staffLead").textContent=API?"Logged in as Security Office staff. Items you post show up on every student's phone within a minute.":"Demo mode: logged in as Security Office staff. Changes reset when you reload.";
   const pend=allClaims.filter(c=>c.status==="pending");
   $("#claimTbl tbody").innerHTML=pend.length?pend.map(c=>`<tr><td><b>${esc(c.itemName)}</b><br><span class="nw">${esc(c.tag)}</span></td><td>${esc(c.name)}<br>${esc(c.studentNo)}<br>${esc(c.contact)}</td><td>${esc(c.proof)}</td><td><div class="act"><button type="button" data-ok="${esc(c.cid)}">Approve</button><button type="button" class="alt" data-no="${esc(c.cid)}">Reject</button></div></td></tr>`).join(""):`<tr><td colspan="4">No pending claims.</td></tr>`;
@@ -632,7 +637,7 @@ $("#signForm").addEventListener("submit",e=>{
 $("#signOut").addEventListener("click",()=>{my=blankMe();demoKey=null;if(API)local.del(ME_KEY);closeM();renderAll()});
 function staffLogout(silent){
   if(API&&staffToken&&!silent)call("staff",{op:"logout",token:staffToken}).catch(()=>{});
-  staffToken=null;local.del(STAFF_KEY,true);staffIn=false;if(API)allClaims=[];renderAll();
+  staffToken=null;local.del(STAFF_KEY,true);staffIn=false;sheetUrl="";if(API)allClaims=[];renderAll();
 }
 $("#staffForm").addEventListener("submit",async e=>{
   e.preventDefault();
