@@ -233,7 +233,8 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
 <section class="band hide" id="staff">
   <div class="wrap">
     <h2>Security Office: post and release items</h2>
-    <p class="lead" id="staffLead">Only editors of this page see this panel.</p>
+    <p class="lead" id="staffLead">Only staff accounts see this panel.</p>
+    <div id="staffMsg" class="msg hide" role="status"></div>
     <div class="two">
       <form class="card" id="foundForm" novalidate>
         <h3 style="margin-bottom:14px">Post a found item</h3>
@@ -282,7 +283,7 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
       <details><summary>Who posts the items?</summary><p>Only Security Office staff. They log in with a staff account to post the items turned in at the office, approve claims and release items. Students can search, claim and report, but can't post or change items.</p></details>
       <details><summary>How do I prove an item is mine?</summary><p>When you claim, describe something not shown in the post: a sticker, what's inside, a scratch, the lock screen. At pickup, show your NU ID. Staff release the item only when the details match.</p></details>
       <details><summary>Why can't I see the full details of an item?</summary><p>Posts leave out identifying details on purpose, so only the real owner can describe them. Photos of IDs and wallets are blurred before they're posted, and IDs show the name but not the student number.</p></details>
-      <details><summary>What happens to my personal details?</summary><p>Only Security Office staff see your name, student number, contact details and proof of ownership, and only to process your claim. They're deleted automatically 30 days after your claim is closed, following the Data Privacy Act of 2012 (RA 10173). Your lost-item reports are visible only to you.</p></details>
+      <details><summary>What happens to my personal details?</summary><p>Only Security Office staff see your name, student number, contact details and proof of ownership, and only to process your claim. They're deleted automatically 30 days after your claim is closed, following the Data Privacy Act of 2012 (RA 10173). Your sign-in details and lost-item reports stay on your own phone; they're sent to the office only when you claim an item.</p></details>
       <details><summary>Why do I need to sign in?</summary><p>So the Security Office knows who is claiming and how to reach you, without you typing your details every time. In this prototype you enter your name and student number once. The full version would use your NU email login instead.</p></details>
       <details><summary>How long are items kept?</summary><p>Items are kept for 30 days. After that, staff mark them for disposal or donation, so check early.</p></details>
       <details><summary>I found something. What do I do?</summary><p>Bring it to the Security Office. Staff will tag it and post it here the same day.</p></details>
@@ -341,12 +342,17 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
 
 <script>
 {
+/* ===== Settings ===== */
+/* Paste your Google Apps Script web app link here (it ends in /exec).
+   Leave it empty to run in demo mode with sample items. */
+const API_URL="";
 const TZ="Asia/Manila",HOLD_DAYS=30,KEEP_DAYS=30,BLUR_CATS=["ID","Wallet"];
-/* Demo staff account for the Security Office. Prototype only: a real system checks
-   staff passwords on its server and never puts them in the page. */
+/* Demo mode only. With the API, the staff login is checked by Google Apps Script,
+   and the real password never appears in this page. */
 const DEMO_STAFF={user:"admin",pass:"lostfound2026"};
 const CATS=["ID","Umbrella","Charger","Tumbler","Calculator","Flash drive","Notebook","Earphones","Bag","Wallet","Other"];
 const PLACES=["Main lobby","Library","Canteen","Gym","Computer labs","Classrooms, 2nd floor","Classrooms, 3rd floor","Classrooms, 4th floor","Comfort rooms","Parking area","Other"];
+const API=/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(API_URL.trim());
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -380,12 +386,12 @@ const SAMPLE=[
  {id:"h6",tag:"LF-0146",name:"NU student ID",cat:"ID",place:"Canteen",date:ago(40),desc:"BSIT student, surname starts with D.",status:"claimed",releasedAt:stampAgo(38)},
  {id:"h7",tag:"LF-0145",name:"Gray hoodie",cat:"Other",place:"Gym",date:ago(45),desc:"Size M, no print.",status:"claimed",releasedAt:stampAgo(41)}];
 const SAMPLE_CLAIMS=[
- {uid:"sample-1",cid:"CL-7Q2M",itemId:"s3",itemName:"White 20W phone charger",tag:"LF-0158",name:"Paolo Reyes",studentNo:"2024-104233",contact:"preyes@example.edu",proof:"There's a strip of yellow tape on the cable near the plug.",consent:true,status:"pending",at:stampAgo(1)},
- {uid:"sample-2",cid:"CL-4KD8",itemId:"s6",itemName:"Black 64GB flash drive",tag:"LF-0154",name:"Bea Villanueva",studentNo:"2023-118560",contact:"bvillanueva@example.edu",proof:"Has a folder named THESIS-FINAL-v3 with our Chapter 2.",consent:true,status:"approved",at:stampAgo(7),decidedAt:stampAgo(6)},
- {uid:"sample-3",cid:"CL-9VX1",itemId:"h1",itemName:"Blue Aqua Flask tumbler",tag:"LF-0152",name:"Carlo Mendoza",studentNo:"2025-120417",contact:"cmendoza@example.edu",proof:"Dent on the bottom and a cat sticker under the lid.",consent:true,status:"approved",at:stampAgo(11),decidedAt:stampAgo(10)},
- {uid:"sample-4",cid:"CL-6TR3",itemId:"h4",itemName:"Brown leather wallet",tag:"LF-0149",name:"Andrea Cruz",studentNo:"2023-101775",contact:"acruz@example.edu",proof:"Brown bifold with my library card and a beep card inside.",consent:true,status:"approved",at:stampAgo(21),decidedAt:stampAgo(20)},
- {uid:"sample-5",cid:"CL-2HB6",itemId:"h4",itemName:"Brown leather wallet",tag:"LF-0149",name:"Mark Santos",studentNo:"2024-109982",contact:"msantos@example.edu",proof:"Black wallet with my ID inside.",consent:true,status:"rejected",at:stampAgo(22),decidedAt:stampAgo(21)},
- {uid:"sample-6",cid:"CL-8MW5",itemId:"h6",itemName:"NU student ID",tag:"LF-0146",name:"Joanna Dizon",studentNo:"2025-131208",contact:"jdizon@example.edu",proof:"My ID, the lanyard has a small keychain.",consent:true,status:"approved",at:stampAgo(39),decidedAt:stampAgo(38)}];
+ {cid:"CL-7Q2M",itemId:"s3",itemName:"White 20W phone charger",tag:"LF-0158",name:"Paolo Reyes",studentNo:"2024-104233",contact:"preyes@example.edu",proof:"There's a strip of yellow tape on the cable near the plug.",status:"pending",at:stampAgo(1)},
+ {cid:"CL-4KD8",itemId:"s6",itemName:"Black 64GB flash drive",tag:"LF-0154",name:"Bea Villanueva",studentNo:"2023-118560",contact:"bvillanueva@example.edu",proof:"Has a folder named THESIS-FINAL-v3 with our Chapter 2.",status:"approved",at:stampAgo(7),decidedAt:stampAgo(6)},
+ {cid:"CL-9VX1",itemId:"h1",itemName:"Blue Aqua Flask tumbler",tag:"LF-0152",name:"Carlo Mendoza",studentNo:"2025-120417",contact:"cmendoza@example.edu",proof:"Dent on the bottom and a cat sticker under the lid.",status:"approved",at:stampAgo(11),decidedAt:stampAgo(10)},
+ {cid:"CL-6TR3",itemId:"h4",itemName:"Brown leather wallet",tag:"LF-0149",name:"Andrea Cruz",studentNo:"2023-101775",contact:"acruz@example.edu",proof:"Brown bifold with my library card and a beep card inside.",status:"approved",at:stampAgo(21),decidedAt:stampAgo(20)},
+ {cid:"CL-2HB6",itemId:"h4",itemName:"Brown leather wallet",tag:"LF-0149",name:"Mark Santos",studentNo:"2024-109982",contact:"msantos@example.edu",proof:"Black wallet with my ID inside.",status:"rejected",at:stampAgo(22),decidedAt:stampAgo(21)},
+ {cid:"CL-8MW5",itemId:"h6",itemName:"NU student ID",tag:"LF-0146",name:"Joanna Dizon",studentNo:"2025-131208",contact:"jdizon@example.edu",proof:"My ID, the lanyard has a small keychain.",status:"approved",at:stampAgo(39),decidedAt:stampAgo(38)}];
 
 const ICON={
  "ID":'<rect x="18" y="12" width="64" height="46" rx="5" fill="#2337c6"/><rect x="18" y="12" width="64" height="12" rx="5" fill="#1b2ca6"/><circle cx="36" cy="40" r="8" fill="#ecd09a"/><path d="M50 36h22M50 44h16" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
@@ -406,41 +412,91 @@ $("#lCat").innerHTML=opts(CATS);$("#sCat").innerHTML=opts(CATS);$("#lPlace").inn
 $("#lDate").value=today;$("#sDate").value=today;$("#lDate").max=today;$("#sDate").max=today;
 $("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);
 
-let items=[],allClaims=[],my={profile:null,reports:[],claims:[]},db=null,assets=null,uid=null,editor=false,live=false,claimItem=null,pendingPhoto=null,afterSign=null,photoRun=0;
-/* Demo mode accounts: staffIn is the Security Office login; demoStore keeps each student's requests by student number. */
-let staffIn=false;const demoStore={};
-const purging=new Set();
-const myUid=()=>uid||"me";
+const blankMe=()=>({profile:null,reports:[],claims:[]});
+let items=[],allClaims=[],my=blankMe(),staffIn=false,staffToken=null,claimItem=null,pendingPhoto=null,afterSign=null,photoRun=0,loaded=!API,pulling=null,demoKey=null;
+const demoStore={};
 const expired=c=>!!c.decidedAt&&!c.purged&&days(ymd(c.decidedAt))>=KEEP_DAYS;
 const purge=c=>({...c,name:"",studentNo:"",contact:"",proof:"",purged:true});
-const strip=({uid,...c})=>c;
 const statusText={available:"Available",pending:"Claim pending",claimed:"Claimed"};
 
-/* ---------- data layer: the live database when published, memory in demo mode ---------- */
-async function setItem(id,patch){
-  if(live)return db.doc("found/"+id).update(patch);
-  const it=items.find(i=>i.id===id);if(it)Object.assign(it,patch);renderAll();
+/* ---------- saved on this device only ---------- */
+const ME_KEY="nulplf.me",STAFF_KEY="nulplf.staff";
+const local={
+  get(k,s){try{return JSON.parse((s?sessionStorage:localStorage).getItem(k)||"null")}catch(e){return null}},
+  set(k,v,s){try{(s?sessionStorage:localStorage).setItem(k,JSON.stringify(v))}catch(e){}},
+  del(k,s){try{(s?sessionStorage:localStorage).removeItem(k)}catch(e){}}};
+const saveMine=()=>{if(API)local.set(ME_KEY,my)};
+function loadMine(){const d=local.get(ME_KEY);if(d&&typeof d==="object")my={profile:d.profile&&d.profile.name&&d.profile.studentNo?d.profile:null,reports:Array.isArray(d.reports)?d.reports:[],claims:Array.isArray(d.claims)?d.claims:[]}}
+
+/* ---------- the API: a Google Sheet served by Google Apps Script ---------- */
+async function request(url,opts){
+  const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),25000);
+  try{const r=await fetch(url,{...opts,signal:ctl.signal});const d=await r.json();
+    if(!d.ok){const e=new Error(d.message||d.error||"error");e.code=d.error;throw e}return d}
+  finally{clearTimeout(t)}
 }
-async function addItem(it){if(live)return db.collection("found").add(it);items.push({...it,id:newId("x")});renderAll()}
-async function delItem(id){if(live)return db.doc("found/"+id).delete();items=items.filter(i=>i.id!==id);renderAll()}
-async function saveMine(){if(live&&uid)await db.doc("data/users/"+uid+"/profile").set({profile:my.profile,reports:my.reports,claims:my.claims})}
-async function saveClaims(u,list){
-  if(live)return db.collection("claims").doc(u).set({list});
-  allClaims=allClaims.filter(c=>c.uid!==u).concat(list.map(c=>({...c,uid:u})));
-  if(u===myUid())syncMine(list);
-  renderAll();
+/* A plain-text body keeps the request "simple", which Apps Script accepts from any website. */
+const call=(action,body)=>request(API_URL,{method:"POST",body:JSON.stringify({action,...body})});
+async function staffCall(op,body){
+  try{return await call("staff",{op,token:staffToken,...body})}
+  catch(e){if(e.code==="login_expired"){staffLogout(true);openSign(null,"staff");show($("#pMsg"),"Your staff session ended. Please log in again.")}throw e}
 }
-/* Copy staff decisions (and the 30-day deletion) into the student's own copy of their claims. */
+/* Pull the latest items (and, for staff, claims) from the API. */
+function pull(){
+  if(!API)return Promise.resolve();
+  if(pulling)return pulling;
+  pulling=(async()=>{
+    try{const d=await request(API_URL+"?action=items&t="+Date.now());items=Array.isArray(d.items)?d.items:[];loaded=true;
+      $("#srcNote").textContent=items.length?`Posted by the Security Office. Updated ${new Date().toLocaleTimeString("en-PH",{hour:"numeric",minute:"2-digit",timeZone:TZ})}.`:"No items posted yet. Check back soon.";}
+    catch(e){$("#srcNote").textContent=loaded?"Couldn't reach the Security Office list just now. Showing the last items loaded.":"Couldn't load the found items. Check your connection, then reload the page."}
+    const open=my.claims.filter(c=>!c.purged).map(c=>c.cid).slice(-50);
+    if(open.length){try{const d=await call("status",{cids:open});if(syncMine(Object.entries(d.statuses||{}).map(([cid,s])=>({cid,...s}))))saveMine()}catch(e){}}
+    if(staffIn){try{const d=await staffCall("claims");allClaims=Array.isArray(d.claims)?d.claims:[]}catch(e){}}
+    renderAll();
+  })().finally(()=>{pulling=null});
+  return pulling;
+}
+/* Copy staff decisions (and the 30-day deletion) into the student's own list of claims. */
 function syncMine(list){
   const by=Object.fromEntries(list.map(c=>[c.cid,c]));let ch=false;
-  my.claims=my.claims.map(c=>{const s=by[c.cid];if(!s||(s.status===c.status&&!!s.purged===!!c.purged))return c;ch=true;const n={...c,status:s.status,decidedAt:s.decidedAt};return s.purged?purge(n):n});
+  my.claims=my.claims.map(c=>{const s=by[c.cid];if(!s||(s.status===c.status&&!!s.purged===!!c.purged))return c;ch=true;return {...c,status:s.status,decidedAt:s.decidedAt,purged:!!s.purged}});
   return ch;
+}
+
+/* ---------- actions: the API when connected, memory in demo mode ---------- */
+async function sendClaim(it,proof){
+  const p=my.profile,at=new Date().toISOString();let cid;
+  if(API){cid=(await call("claim",{itemId:it.id,name:p.name,studentNo:p.studentNo,contact:p.contact,proof,consent:true})).cid}
+  else{cid=newId("CL");allClaims.push({cid,itemId:it.id,itemName:it.name,tag:it.tag,name:p.name,studentNo:p.studentNo,contact:p.contact,proof,status:"pending",at})}
+  my.claims.push({cid,itemId:it.id,itemName:it.name,tag:it.tag,status:"pending",at});it.status="pending";saveMine();renderAll();pull();
+  return cid;
+}
+async function decide(cid,status){
+  if(API){await staffCall("decide",{cid,status});return pull()}
+  const c=allClaims.find(x=>x.cid===cid);if(!c||c.status!=="pending")return;const at=new Date().toISOString();Object.assign(c,{status,decidedAt:at});
+  const it=items.find(i=>i.id===c.itemId);if(it)Object.assign(it,status==="approved"?{status:"claimed",releasedAt:at}:{status:"available"});renderAll();
+}
+async function releaseItem(id){
+  if(API){await staffCall("release",{itemId:id});return pull()}
+  const it=items.find(i=>i.id===id);if(it)Object.assign(it,{status:"claimed",releasedAt:new Date().toISOString()});renderAll();
+}
+async function removeItem(id){
+  if(API){await staffCall("remove",{itemId:id});return pull()}
+  items=items.filter(i=>i.id!==id);renderAll();
+}
+const toB64=blob=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=()=>rej(r.error);r.readAsDataURL(blob)});
+async function postItem(fields,ph){
+  if(API){const photo=ph?{data:await toB64(ph.blob),blurred:ph.blurred}:null;const d=await staffCall("post",{item:fields,photo});await pull();return d.item.tag}
+  const nums=items.map(i=>parseInt(String(i.tag).replace(/\D/g,""),10)).filter(n=>!isNaN(n));
+  const it={...fields,id:newId("x"),tag:"LF-"+String((nums.length?Math.max(...nums):100)+1).padStart(4,"0"),status:"available",postedAt:new Date().toISOString()};
+  if(ph){it.photoUrl=ph.url;it.blurred=ph.blurred}
+  items.push(it);renderAll();return it.tag;
 }
 
 /* ---------- rendering ---------- */
 function photoSrc(i){
-  if(i.photo)return "/_blob/"+encodeURIComponent(i.photo);
-  if(!live&&typeof i.photoUrl==="string"&&i.photoUrl.startsWith("blob:"))return i.photoUrl;
+  if(API&&/^[\w-]{10,}$/.test(i.photoId||""))return "https://drive.google.com/thumbnail?id="+encodeURIComponent(i.photoId)+"&sz=w1000";
+  if(!API&&typeof i.photoUrl==="string"&&i.photoUrl.startsWith("blob:"))return i.photoUrl;
   return "";
 }
 function visible(){
@@ -448,39 +504,41 @@ function visible(){
   return items.filter(i=>(sc||i.status!=="claimed")&&(!c||i.cat===c)&&(!p||i.place===p)&&(!q||[i.name,i.cat,i.place,i.desc,i.tag].join(" ").toLowerCase().includes(q))).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
 function renderBoard(){
+  if(!loaded){$("#stat").innerHTML="";$("#board").innerHTML=`<div class="empty">Loading found items…</div>`;return}
   const v=visible(),av=items.filter(i=>i.status==="available").length,pe=items.filter(i=>i.status==="pending").length,wk=items.filter(i=>days(i.date)<=7&&i.status!=="claimed").length;
   $("#stat").innerHTML=`<span><b>${av}</b>waiting to be claimed</span><span><b>${pe}</b>claim pending</span><span><b>${wk}</b>turned in this week</span>`;
   $("#board").innerHTML=v.length?v.map(i=>{const src=photoSrc(i);return `<article class="tag ${i.status==="claimed"?"claimed":""}" id="item-${esc(i.id)}">
     <span class="no">${esc(i.tag)}</span>
-    <div class="pic">${src?`<img src="${esc(src)}" alt="Photo of ${esc(i.name)}${i.blurred?", blurred for privacy":""}" loading="lazy">${i.blurred?`<span class="blurtag">Blurred for privacy</span>`:""}`:icon(i.cat)}</div>
+    <div class="pic">${src?`<img src="${esc(src)}" alt="Photo of ${esc(i.name)}${i.blurred?", blurred for privacy":""}" loading="lazy" referrerpolicy="no-referrer">${i.blurred?`<span class="blurtag">Blurred for privacy</span>`:""}`:icon(i.cat)}</div>
     <h3>${esc(i.name)}</h3>
     <div class="meta">${esc(i.place)} · <span class="nw">${fmt(i.date)}</span></div>
     ${i.desc?`<div class="desc">${esc(i.desc)}</div>`:""}
     <div class="foot"><span class="badge b-${esc(i.status)}">${esc(statusText[i.status]||i.status)}</span>${i.status==="available"&&!staffIn?`<button type="button" data-claim="${esc(i.id)}">This is mine</button>`:""}</div>
-  </article>`}).join(""):`<div class="empty">No items match. Try another category, or <a href="#report">report your lost item</a> so you see it when it's turned in.</div>`;
+  </article>`}).join(""):`<div class="empty">${items.length?"No items match. Try another category, or":"Nothing has been posted yet. You can"} <a href="#report">report your lost item</a> so you see it when it's turned in.</div>`;
 }
 function matchesFor(r){return items.filter(i=>i.status==="available"&&i.cat===r.cat&&i.date>=r.date)}
 function renderMine(){
+  if(!API)syncMine(allClaims);
   const rs=my.reports||[],cs=my.claims||[];let n=0;
   const rHtml=rs.slice().reverse().map(r=>{const m=matchesFor(r);n+=m.length;return `<div class="req"><div class="h"><b>${esc(r.item)}</b><span class="badge b-available" style="border:1px solid var(--line)">Report · ${fmt(r.date)}</span></div><p>${esc(r.cat)}${r.place?" · "+esc(r.place):""}</p>${m.map(i=>`<div class="match"><span>Possible match: <b>${esc(i.name)}</b> (${esc(i.tag)}), ${esc(i.place)}</span><a href="#item-${esc(i.id)}">View tag</a></div>`).join("")}</div>`}).join("");
   const cHtml=cs.slice().reverse().map(c=>`<div class="req"><div class="h"><b>${esc(c.itemName)}</b><span class="badge ${c.status==="approved"?"b-available":c.status==="rejected"?"b-claimed":"b-pending"}" style="border:1px solid var(--line)">${c.status==="approved"?"Approved: pick up now":c.status==="rejected"?"Not approved":"Claim pending"}</span></div><p>Ref ${esc(c.cid)} · ${esc(c.tag)}${c.status==="approved"?" · Bring your NU ID to the Security Office.":c.status==="rejected"?" · Visit the Security Office if you think this is a mistake.":" · Staff will check your details."}</p></div>`).join("");
-  $("#mineList").innerHTML=(cHtml+rHtml)||`<div class="req"><p style="margin:0">${staffIn?"You're logged in as staff. Students' claims appear in the Staff panel.":"Nothing yet. Claims and reports you send appear here."}</p></div>`;
-  const d=$("#mineDot");d.textContent=n;d.classList.toggle("hide",!n);
+  const body=staffIn?"":(cHtml+rHtml);
+  $("#mineList").innerHTML=body||`<div class="req"><p style="margin:0">${staffIn?"You're logged in as staff. Students' claims appear in the Staff panel.":"Nothing yet. Claims and reports you send appear here."}</p></div>`;
+  const d=$("#mineDot");d.textContent=n;d.classList.toggle("hide",staffIn||!n);
 }
 function renderWho(){
-  const p=my.profile;
-  const b=$("#signBtn");$("#footStaff").classList.toggle("hide",live);
+  const p=my.profile,b=$("#signBtn");
   if(staffIn){b.innerHTML='Staff<span class="adm">: admin</span>';b.setAttribute("aria-label","Logged in as Security Office staff. Log out")}
   else{b.textContent=p?p.name.split(/\s+/)[0]:"Sign in";b.setAttribute("aria-label",p?`Signed in as ${p.name}. Change or sign out`:"Sign in")}
   const who=verb=>staffIn?`<span>Logged in as <b>Security Office staff</b>. Students send ${verb==="Reporting"?"reports":"claims"} from their own account.</span><button type="button" class="link" data-sign="student">Switch to student</button>`:p?`<span>${verb} as <b>${esc(p.name)}</b> · ${esc(p.studentNo)}</span><button type="button" class="link" data-sign>Change</button>`:`<span>Sign in so the Security Office knows who to contact.</span><button type="button" class="link" data-sign>Sign in</button>`;
-  $("#lWho").innerHTML=who("Reporting");$("#lWho").classList.toggle("out",!p);
-  $("#cWho").innerHTML=who("Claiming");$("#cWho").classList.toggle("out",!p);
+  $("#lWho").innerHTML=who("Reporting");$("#lWho").classList.toggle("out",!p&&!staffIn);
+  $("#cWho").innerHTML=who("Claiming");$("#cWho").classList.toggle("out",!p&&!staffIn);
 }
 function renderStaff(){
-  $("#staffLink").classList.toggle("hide",!editor);$("#staff").classList.toggle("hide",!editor);if(!editor)return;
-  $("#staffLead").textContent=live?"Only editors of this page see this panel.":"Logged in as Security Office staff. Only staff accounts see this panel.";
+  $("#staffLink").classList.toggle("hide",!staffIn);$("#staff").classList.toggle("hide",!staffIn);if(!staffIn)return;
+  $("#staffLead").textContent=API?"Logged in as Security Office staff. Items you post show up on every student's phone within a minute.":"Demo mode: logged in as Security Office staff. Changes reset when you reload.";
   const pend=allClaims.filter(c=>c.status==="pending");
-  $("#claimTbl tbody").innerHTML=pend.length?pend.map(c=>`<tr><td><b>${esc(c.itemName)}</b><br><span class="nw">${esc(c.tag)}</span></td><td>${esc(c.name)}<br>${esc(c.studentNo)}<br>${esc(c.contact)}</td><td>${esc(c.proof)}</td><td><div class="act"><button type="button" data-ok="${esc(c.uid)}|${esc(c.cid)}">Approve</button><button type="button" class="alt" data-no="${esc(c.uid)}|${esc(c.cid)}">Reject</button></div></td></tr>`).join(""):`<tr><td colspan="4">No pending claims.</td></tr>`;
+  $("#claimTbl tbody").innerHTML=pend.length?pend.map(c=>`<tr><td><b>${esc(c.itemName)}</b><br><span class="nw">${esc(c.tag)}</span></td><td>${esc(c.name)}<br>${esc(c.studentNo)}<br>${esc(c.contact)}</td><td>${esc(c.proof)}</td><td><div class="act"><button type="button" data-ok="${esc(c.cid)}">Approve</button><button type="button" class="alt" data-no="${esc(c.cid)}">Reject</button></div></td></tr>`).join(""):`<tr><td colspan="4">No pending claims.</td></tr>`;
   const closed=allClaims.filter(c=>c.status!=="pending").sort((a,b)=>String(b.decidedAt||"").localeCompare(String(a.decidedAt||""))).slice(0,8);
   $("#closedTbl tbody").innerHTML=closed.length?closed.map(c=>{const d=c.decidedAt?days(ymd(c.decidedAt)):0,left=Math.max(0,KEEP_DAYS-d);return `<tr><td><b>${esc(c.itemName)}</b><br><span class="nw">${esc(c.tag)}</span></td><td>${c.purged?`<span class="muted">Details deleted after ${KEEP_DAYS} days</span>`:`${esc(c.name)}<br>${esc(c.studentNo)}`}</td><td>${c.status==="approved"?"Approved":"Rejected"}</td><td class="nw">${c.decidedAt?fmt(ymd(c.decidedAt)):""}${c.purged?"":`<span class="sub">Details deleted in ${left} day${left===1?"":"s"}</span>`}</td></tr>`}).join(""):`<tr><td colspan="4">No closed claims yet.</td></tr>`;
   const inv=items.filter(i=>i.status!=="claimed").sort((a,b)=>String(a.date).localeCompare(String(b.date)));
@@ -506,8 +564,9 @@ const renderAll=()=>{renderBoard();renderMine();renderWho();renderStaff()};
 /* ---------- helpers ---------- */
 const show=(el,t)=>{el.textContent=t;el.classList.remove("hide")};
 const filled=ids=>ids.map(id=>{const e=$(id);const ok=e.value.trim()!=="";e.setAttribute("aria-invalid",ok?"false":"true");return ok}).every(Boolean);
-const newId=p=>p+"-"+Math.random().toString(36).slice(2,6).toUpperCase();
+const newId=p=>p+"-"+Math.random().toString(36).slice(2,8).toUpperCase();
 const fmtNo=v=>{const d=v.replace(/\D/g,"").slice(0,12);return d.length>4?d.slice(0,4)+"-"+d.slice(4):d};
+const staffErr=()=>show($("#staffMsg"),"Couldn't save that change. Check your connection and try again.");
 
 /* ---------- menu and dialogs ---------- */
 const setMenu=o=>{$("#nav").classList.toggle("open",o);$("#menuBtn").setAttribute("aria-expanded",String(o))};
@@ -532,8 +591,7 @@ function openSign(next,tab){
   $("#pName").value=p?.name||"";$("#pNo").value=p?.studentNo||"";$("#pContact").value=p?.contact||"";$("#aUser").value="";$("#aPass").value="";
   ["#pName","#pNo","#pContact","#aUser","#aPass"].forEach(s=>$(s).removeAttribute("aria-invalid"));
   $("#pBtn").textContent=p?"Save":"Continue";$("#signOut").classList.toggle("hide",!p);
-  $("#seg").classList.toggle("hide",live);
-  const t=live?"student":tab||(staffIn?"staff":"student");setTab(t);
+  const t=tab||(staffIn?"staff":"student");setTab(t);
   openM("#ovSign",t==="staff"?(staffIn?"#goStaff":"#aUser"):"#pName");
 }
 $("#tabStu").addEventListener("click",()=>{setTab("student");$("#pName").focus()});
@@ -550,89 +608,72 @@ document.addEventListener("click",e=>{
   if(b.hasAttribute("data-close")){closeM();return}
   if(b.hasAttribute("data-sign")){openSign(null,b.dataset.sign||undefined);return}
   if(b.dataset.claim){const it=items.find(i=>i.id===b.dataset.claim);if(it)requireProfile(()=>openClaim(it));return}
-  if(b.dataset.ok||b.dataset.no)decide((b.dataset.ok||b.dataset.no).split("|"),b.dataset.ok?"approved":"rejected",b);
-  if(b.dataset.release)release(b.dataset.release,b);
-  if(b.dataset.del)removeItem(b.dataset.del,b);
+  const act=fn=>{b.disabled=true;$("#staffMsg").classList.add("hide");fn().catch(err=>{b.disabled=false;if(err?.code!=="login_expired")staffErr()})};
+  if(b.dataset.ok)act(()=>decide(b.dataset.ok,"approved"));
+  if(b.dataset.no)act(()=>decide(b.dataset.no,"rejected"));
+  if(b.dataset.release)act(()=>releaseItem(b.dataset.release));
+  if(b.dataset.del){const it=items.find(i=>i.id===b.dataset.del);if(it&&confirm(`Remove ${it.tag} (${it.name}) from the board? This can't be undone.`))act(()=>removeItem(it.id))}
 });
 
-/* ---------- sign in ---------- */
+/* ---------- sign in: students and Security Office staff ---------- */
 $("#pNo").addEventListener("input",e=>{e.target.value=fmtNo(e.target.value)});
-$("#signForm").addEventListener("submit",async e=>{
+$("#signForm").addEventListener("submit",e=>{
   e.preventDefault();
   if(!filled(["#pName","#pNo","#pContact"])){show($("#pMsg"),"Please fill in every field.");return}
   if(!/^\d{4}-\d{4,8}$/.test($("#pNo").value)){$("#pNo").setAttribute("aria-invalid","true");show($("#pMsg"),"Check your student number, for example 2025-123456.");return}
   const prof={name:$("#pName").value.trim().replace(/\s+/g," "),studentNo:$("#pNo").value,contact:$("#pContact").value.trim()};
-  if(!live){
-    /* Demo: one account at a time. Each student number keeps its own requests, so you can switch to staff and back. */
-    staffIn=false;editor=false;
-    const key="stu-"+prof.studentNo;
-    if(uid!==key){my=demoStore[key]||(demoStore[key]={profile:null,reports:[],claims:[]});uid=key}
-    my.profile=prof;syncMine(allClaims.filter(c=>c.uid===uid));
-  }else{
-    const prev=my.profile;my.profile=prof;$("#pBtn").disabled=true;
-    try{await saveMine()}catch(err){my.profile=prev;$("#pBtn").disabled=false;show($("#pMsg"),"Couldn't save your details right now. Please try again.");return}
-    $("#pBtn").disabled=false;
-  }
+  if(staffIn)staffLogout();
+  if(API){if(my.profile&&my.profile.studentNo!==prof.studentNo)my=blankMe();my.profile=prof;saveMine()}
+  else{const key="stu-"+prof.studentNo;if(demoKey!==key){my=demoStore[key]||(demoStore[key]=blankMe());demoKey=key}my.profile=prof}
   const next=afterSign;afterSign=null;closeM();renderAll();if(next)next();
 });
-$("#staffForm").addEventListener("submit",e=>{
+$("#signOut").addEventListener("click",()=>{my=blankMe();demoKey=null;if(API)local.del(ME_KEY);closeM();renderAll()});
+function staffLogout(silent){
+  if(API&&staffToken&&!silent)call("staff",{op:"logout",token:staffToken}).catch(()=>{});
+  staffToken=null;local.del(STAFF_KEY,true);staffIn=false;if(API)allClaims=[];renderAll();
+}
+$("#staffForm").addEventListener("submit",async e=>{
   e.preventDefault();
   if(!filled(["#aUser","#aPass"])){show($("#pMsg"),"Enter the staff username and password.");return}
-  if($("#aUser").value.trim().toLowerCase()!==DEMO_STAFF.user||$("#aPass").value!==DEMO_STAFF.pass){$("#aPass").value="";$("#aPass").setAttribute("aria-invalid","true");show($("#pMsg"),"Wrong username or password.");$("#aPass").focus();return}
-  uid=null;my={profile:null,reports:[],claims:[]};staffIn=true;editor=true;afterSign=null;
-  closeM();renderAll();$("#staff").scrollIntoView({block:"start"});
+  const user=$("#aUser").value.trim().toLowerCase(),pass=$("#aPass").value;
+  const wrong=t=>{$("#aPass").value="";$("#aPass").setAttribute("aria-invalid","true");show($("#pMsg"),t);$("#aPass").focus()};
+  if(API){
+    $("#aBtn").disabled=true;
+    try{const d=await call("login",{user,password:pass});staffToken=d.token;local.set(STAFF_KEY,d.token,true)}
+    catch(err){$("#aBtn").disabled=false;wrong(err.code==="wrong_login"?"Wrong username or password.":err.code==="no_password_set"?"The staff login isn't set up yet. In the Google Sheet, use NULPLF > Set staff login.":"Couldn't reach the server. Check your connection and try again.");return}
+    $("#aBtn").disabled=false;
+  }else if(user!==DEMO_STAFF.user||pass!==DEMO_STAFF.pass){wrong("Wrong username or password.");return}
+  staffIn=true;afterSign=null;closeM();renderAll();$("#staff").scrollIntoView({block:"start"});pull();
 });
-$("#staffOut").addEventListener("click",()=>{staffIn=false;editor=false;closeM();renderAll();$("#found").scrollIntoView({block:"start"})});
+$("#staffOut").addEventListener("click",()=>{staffLogout();closeM();$("#found").scrollIntoView({block:"start"})});
 $("#goStaff").addEventListener("click",()=>{closeM();$("#staff").scrollIntoView({block:"start"})});
-$("#signOut").addEventListener("click",async()=>{
-  if(!live){uid=null;my={profile:null,reports:[],claims:[]};closeM();renderAll();return}
-  const prev=my.profile;my.profile=null;
-  try{await saveMine()}catch(err){my.profile=prev;show($("#pMsg"),"Couldn't sign out right now. Please try again.");return}
-  closeM();renderWho();
-});
 
 /* ---------- student: claim and report ---------- */
 $("#claimForm").addEventListener("submit",async e=>{
   e.preventDefault();
   if(!my.profile){openSign(null,"student");return}
-  if(live&&!uid){show($("#cMsg"),"Sign in to Claude to send a claim from this page.");return}
   if(!filled(["#cProof"])){show($("#cMsg"),"Describe something only the owner would know.");return}
   if(!$("#cConsent").checked){show($("#cMsg"),"Tick the consent box so staff can use your details for this claim.");return}
-  const p=my.profile,c={cid:newId("CL"),itemId:claimItem.id,itemName:claimItem.name,tag:claimItem.tag,name:p.name,studentNo:p.studentNo,contact:p.contact,proof:$("#cProof").value.trim(),consent:true,status:"pending",at:new Date().toISOString()};
   $("#cBtn").disabled=true;
-  try{my.claims.push(c);await saveMine();await saveClaims(myUid(),my.claims);await setItem(claimItem.id,{status:"pending"});
-    $("#claimForm").classList.add("hide");show($("#cMsg"),`Claim sent. Your reference is ${c.cid}. Staff will check your details; once approved, bring your NU ID to the Security Office.`);renderAll();
-  }catch(err){my.claims=my.claims.filter(x=>x.cid!==c.cid);show($("#cMsg"),"Couldn't send the claim right now. Please try again.")}
+  try{const cid=await sendClaim(claimItem,$("#cProof").value.trim());
+    $("#claimForm").classList.add("hide");show($("#cMsg"),`Claim sent. Your reference is ${cid}. Staff will check your details; once approved, bring your NU ID to the Security Office.`);
+  }catch(err){show($("#cMsg"),err.code==="not_available"?"Someone else has already claimed this item, so staff are checking it first. Visit the Security Office if it's yours.":err.code==="too_many"?"You already have 3 claims waiting. Wait for staff to check them first.":err.code==="not_found"?"This item was just removed from the board. Visit the Security Office to ask about it.":"Couldn't send the claim right now. Check your connection and try again.")}
   $("#cBtn").disabled=false;
 });
-$("#lostForm").addEventListener("submit",async e=>{
+$("#lostForm").addEventListener("submit",e=>{
   e.preventDefault();
   if(!my.profile){openSign(()=>$("#lostForm").requestSubmit(),"student");return}
-  if(live&&!uid){show($("#lostMsg"),"Sign in to Claude to save reports from this page.");return}
   if(!filled(["#lItem","#lDesc","#lDate"])){show($("#lostMsg"),"Please fill in the fields marked in red.");return}
   if(!$("#lConsent").checked){show($("#lostMsg"),"Tick the consent box to save your report.");return}
-  const r={rid:newId("LR"),cat:$("#lCat").value,date:$("#lDate").value,item:$("#lItem").value.trim(),place:$("#lPlace").value,desc:$("#lDesc").value.trim(),consent:true,at:new Date().toISOString()};
-  $("#lostBtn").disabled=true;
-  try{my.reports.push(r);await saveMine();const m=matchesFor(r).length;show($("#lostMsg"),m?`Report saved. ${m} possible match${m>1?"es are":" is"} already posted: see My requests.`:"Report saved. No match yet. Check My requests for new matches.");$("#lostForm").reset();$("#lDate").value=today;renderMine()}
-  catch(err){my.reports=my.reports.filter(x=>x.rid!==r.rid);show($("#lostMsg"),"Couldn't save the report right now. Please try again.")}
-  $("#lostBtn").disabled=false;
+  const r={rid:newId("LR"),cat:$("#lCat").value,date:$("#lDate").value,item:$("#lItem").value.trim(),place:$("#lPlace").value,desc:$("#lDesc").value.trim(),at:new Date().toISOString()};
+  my.reports.push(r);saveMine();const m=matchesFor(r).length;
+  show($("#lostMsg"),m?`Report saved. ${m} possible match${m>1?"es are":" is"} already posted: see My requests.`:"Report saved. No match yet. Check My requests for new matches.");
+  $("#lostForm").reset();$("#lDate").value=today;renderMine();
 });
 
-/* ---------- staff ---------- */
-async function release(id,btn){btn.disabled=true;try{await setItem(id,{status:"claimed",releasedAt:new Date().toISOString()})}catch(err){btn.disabled=false}}
-async function removeItem(id,btn){btn.disabled=true;try{await delItem(id)}catch(err){btn.disabled=false}}
-async function decide([u,cid],status,btn){
-  btn.disabled=true;
-  try{const row=allClaims.find(c=>c.uid===u&&c.cid===cid);if(!row){btn.disabled=false;return}
-    const at=new Date().toISOString();
-    const list=allClaims.filter(c=>c.uid===u).map(c=>strip(c.cid===cid?{...c,status,decidedAt:at}:c));
-    await saveClaims(u,list);
-    await setItem(row.itemId,status==="approved"?{status:"claimed",releasedAt:at}:{status:"available"});
-  }catch(err){btn.disabled=false}
-}
-
+/* ---------- staff: post a found item ---------- */
 /* Photos are shrunk to at most 1280 px before upload. IDs and wallets are blurred
-   on the device, so the sharp original never leaves the staff computer. */
+   on this device, so the sharp original never leaves the staff computer. */
 async function processPhoto(file,blur){
   const url=URL.createObjectURL(file);
   try{
@@ -659,46 +700,26 @@ $("#sCat").addEventListener("change",()=>{$("#sBlur").checked=BLUR_CATS.includes
 $("#foundForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!filled(["#sName","#sDate"])){show($("#foundMsg"),"Add the item name and date found.");return}
   $("#foundBtn").disabled=true;
-  const nums=items.map(i=>parseInt(String(i.tag).replace(/\D/g,""),10)).filter(n=>!isNaN(n));
-  const it={tag:"LF-"+String((nums.length?Math.max(...nums):100)+1).padStart(4,"0"),name:$("#sName").value.trim(),cat:$("#sCat").value,place:$("#sPlace").value,date:$("#sDate").value,desc:$("#sDesc").value.trim(),status:"available",postedAt:new Date().toISOString()};
-  let note="";
-  try{const ph=pendingPhoto;
-    if(ph){if(live){if(assets){const a=await assets.upload(ph.blob);it.photo=a.id;it.blurred=ph.blurred}else note=" The photo wasn't saved because photo storage isn't turned on for this page."}else{it.photoUrl=ph.url;it.blurred=ph.blurred}}
-    await addItem(it);
-    if(ph&&live)URL.revokeObjectURL(ph.url);pendingPhoto=null;
-    show($("#foundMsg"),`Posted as ${it.tag}.${note}`);$("#foundForm").reset();$("#sDate").value=today;$("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);$("#sPrev").classList.add("hide");$("#sPhotoNote").classList.add("hide");
-  }catch(err){show($("#foundMsg"),err&&err.code==="quota_exceeded"?"Storage is full. Remove old items first.":"Couldn't post the item. Please try again.")}
+  const fields={name:$("#sName").value.trim(),cat:$("#sCat").value,place:$("#sPlace").value,date:$("#sDate").value,desc:$("#sDesc").value.trim()};
+  try{const ph=pendingPhoto,tag=await postItem(fields,ph);
+    if(ph&&API)URL.revokeObjectURL(ph.url);pendingPhoto=null;
+    show($("#foundMsg"),`Posted as ${tag}.`);$("#foundForm").reset();$("#sDate").value=today;$("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);$("#sPrev").classList.add("hide");$("#sPhotoNote").classList.add("hide");
+  }catch(err){if(err?.code!=="login_expired")show($("#foundMsg"),err?.code==="photo_too_big"?"The photo is too big. Try a smaller one.":"Couldn't post the item. Check your connection and try again.")}
   $("#foundBtn").disabled=false;
 });
 
 /* ---------- start ---------- */
-function startDemo(msg){live=false;items=SAMPLE.map(x=>({...x}));allClaims=SAMPLE_CLAIMS.map(c=>expired(c)?purge(c):{...c});editor=staffIn;$("#srcNote").textContent=msg;renderAll()}
-const DEMO_NOTE="Demo mode: these are sample items, and changes reset when you reload. Security Office staff log in from Sign in or the Staff login link at the bottom.";
-renderAll();
-(async()=>{
-  if(typeof window.claude?.use!=="function"){startDemo(DEMO_NOTE);return}
-  let user=null;
-  try{
-    user=await window.claude.use("user");
-    db=await window.claude.use("db");
-    if(!db){startDemo(DEMO_NOTE);return}
-    try{uid=user?await user.id():null}catch(e){}
-    try{editor=!!(user&&await user.canEdit())}catch(e){}
-    try{assets=editor?await window.claude.use("assets"):null}catch(e){}
-    live=true;
-    const timer=setTimeout(()=>{$("#srcNote").textContent="Items can't be reached yet. Check your connection."},10000);
-    db.collection("found").onSnapshot(s=>{if(!s.metadata.fromCache)clearTimeout(timer);items=s.docs.map(d=>({id:d.id,...d.data()}));$("#srcNote").textContent=!items.length?"No items posted yet.":items.some(i=>i.sample)?"The items shown are sample entries for the demo. Staff can remove them from the Staff panel.":"Photos and descriptions are posted by the Security Office.";renderAll()},err=>{clearTimeout(timer);$("#srcNote").textContent="Couldn't load items right now."});
-    if(uid)db.doc("data/users/"+uid+"/profile").onSnapshot(s=>{const d=s.exists?s.data():{};my={profile:d.profile||null,reports:[...(d.reports||[])],claims:[...(d.claims||[])]};
-      if(my.claims.some(expired)){my.claims=my.claims.map(c=>expired(c)?purge(c):c);saveMine().catch(()=>{})}
-      renderMine();renderWho()},()=>{});
-    if(uid)db.collection("claims").doc(uid).onSnapshot(s=>{if(!s.exists)return;if(syncMine(s.data().list||[])){renderMine();saveMine().catch(()=>{})}},()=>{});
-    if(editor)db.collection("claims").onSnapshot(s=>{
-      allClaims=s.docs.flatMap(d=>(d.data().list||[]).map(c=>({...c,uid:d.id})));
-      for(const d of s.docs){const list=d.data().list||[];if(list.some(expired)&&!purging.has(d.id)){purging.add(d.id);db.collection("claims").doc(d.id).set({list:list.map(c=>expired(c)?purge(c):c)}).catch(()=>{}).finally(()=>purging.delete(d.id))}}
-      renderStaff()},()=>{});
-    renderAll();
-  }catch(e){startDemo(DEMO_NOTE)}
-})();
+if(API){
+  loadMine();staffToken=local.get(STAFF_KEY,true);staffIn=!!staffToken;
+  $("#srcNote").textContent="Loading found items…";renderAll();pull();
+  setInterval(()=>{if(!document.hidden)pull()},60000);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull()});
+}else{
+  if(API_URL.trim())console.warn("API_URL should be a Google Apps Script web app link ending in /exec. Running in demo mode.");
+  items=SAMPLE.map(x=>({...x}));allClaims=SAMPLE_CLAIMS.map(c=>expired(c)?purge(c):{...c});
+  $("#srcNote").textContent="Demo mode: these are sample items, and changes reset when you reload. Security Office staff log in from Sign in or the Staff login link at the bottom.";
+  renderAll();
+}
 }
 </script>
 </body>
