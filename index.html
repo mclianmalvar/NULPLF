@@ -345,14 +345,16 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
 /* ===== Settings ===== */
 /* Paste your Google Apps Script web app link here (it ends in /exec).
    Leave it empty to run in demo mode with sample items. */
-const API_URL="";
+const API_URL="https://script.google.com/macros/s/AKfycbyIPptDMPZHVw_L1R9PFNXImL3GKajCo0F5w09gwVAwIYrakg_qtbeiWEp-Hmgz-9mR6A/exec";
 const TZ="Asia/Manila",HOLD_DAYS=30,KEEP_DAYS=30,BLUR_CATS=["ID","Wallet"];
 /* Demo mode only. With the API, the staff login is checked by Google Apps Script,
    and the real password never appears in this page. */
 const DEMO_STAFF={user:"admin",pass:"lostfound2026"};
 const CATS=["ID","Umbrella","Charger","Tumbler","Calculator","Flash drive","Notebook","Earphones","Bag","Wallet","Other"];
 const PLACES=["Main lobby","Library","Canteen","Gym","Computer labs","Classrooms, 2nd floor","Classrooms, 3rd floor","Classrooms, 4th floor","Comfort rooms","Parking area","Other"];
-const API=/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(API_URL.trim());
+/* Add ?demo to the page link to show the sample data instead (handy for presentations). */
+const DEMO_LINK=/[?&]demo\b/.test(location.search);
+const API=!DEMO_LINK&&/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(API_URL.trim());
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -715,7 +717,7 @@ if(API){
   setInterval(()=>{if(!document.hidden)pull()},60000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull()});
 }else{
-  if(API_URL.trim())console.warn("API_URL should be a Google Apps Script web app link ending in /exec. Running in demo mode.");
+  if(API_URL.trim()&&!DEMO_LINK)console.warn("API_URL should be a Google Apps Script web app link ending in /exec. Running in demo mode.");
   items=SAMPLE.map(x=>({...x}));allClaims=SAMPLE_CLAIMS.map(c=>expired(c)?purge(c):{...c});
   $("#srcNote").textContent="Demo mode: these are sample items, and changes reset when you reload. Security Office staff log in from Sign in or the Staff login link at the bottom.";
   renderAll();
