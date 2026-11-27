@@ -9,30 +9,28 @@ Time: about 10 minutes. Use a personal Google account (Gmail). Some school accou
 ## 1. Make the sheet and paste the script
 
 1. Open **sheets.new** and name the sheet `NULPLF Lost and Found`.
-2. Click **Extensions → Apps Script**.
-3. At the top, click **Untitled project** and rename it `NULPLF API`.
-4. Delete everything in `Code.gs`, then paste the whole file `apps-script/Code.gs` from this repo.
-5. Click **Save** (the disk icon), close the Apps Script tab, and reload the sheet.
-   A new **NULPLF** menu appears next to Help after a few seconds.
+2. Click **Extensions → Apps Script**. At the top, rename **Untitled project** to `NULPLF API`.
+3. Delete everything in `Code.gs`, paste the whole file `apps-script/Code.gs` from this repo,
+   and click **Save** (the disk icon).
 
-## 2. Set it up from the NULPLF menu
+## 2. Publish the API
 
-1. Click **NULPLF → Set up sheets**. Google asks for permission the first time:
-   **Continue** → pick your account → "Google hasn't verified this app" → **Advanced** →
-   **Go to NULPLF API (unsafe)** → **Allow**. This warning is normal for a script you wrote yourself.
-   It asks for Sheets (store items), Drive (save photos) and triggers (the daily privacy clean-up).
-2. If it stopped after the permission step, click **NULPLF → Set up sheets** again.
-   You should see "The Items and Claims tabs are ready."
-3. Click **NULPLF → Set staff login**. Type a username (for example `admin`) and a password
-   of at least 8 characters. The password is saved only as a hash.
-
-## 3. Publish the API
-
-1. Open **Extensions → Apps Script** again, then **Deploy → New deployment**.
+1. In Apps Script, click **Deploy → New deployment**.
 2. Click the gear next to "Select type" and choose **Web app**.
-3. Description: `NULPLF API`. **Execute as: Me**. **Who has access: Anyone**.
-4. Click **Deploy** (approve permissions again if asked) and copy the **Web app URL**.
-   It looks like `https://script.google.com/macros/s/AKfy.../exec`.
+3. **Execute as: Me**. **Who has access: Anyone**. Click **Deploy**.
+4. Google asks for permission: **Authorize access** → pick your account →
+   "Google hasn't verified this app" → **Advanced** → **Go to NULPLF API (unsafe)** → **Allow**.
+   This warning is normal for a script you wrote yourself. It asks for Sheets (store items),
+   Drive (save photos) and triggers (the daily privacy clean-up).
+5. Copy the **Web app URL**. It looks like `https://script.google.com/macros/s/AKfy.../exec`.
+
+The Items and Claims tabs are created by themselves the first time the website loads.
+
+## 3. Set the staff login
+
+1. Go back to the sheet and reload it. A **NULPLF** menu appears next to Help.
+2. Click **NULPLF → Set staff login**. Type a username (for example `admin`) and a password of
+   at least 8 characters. The password is saved only as a hash.
 
 ## 4. Connect the website
 
@@ -46,7 +44,7 @@ Paste your link between the quotes, save, and push the change to GitHub.
 (Or send the link to Claude and it will do this for you.)
 
 With `API_URL` empty, the page runs in demo mode with sample items and the demo staff login
-`admin` / `lostfound2026`. With the link set, only the login you made in step 2 works.
+`admin` / `lostfound2026`. With the link set, only the login you made in step 3 works.
 
 ## Day to day
 

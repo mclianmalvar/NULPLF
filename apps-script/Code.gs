@@ -34,14 +34,21 @@ function onOpen() {
 }
 
 function setup() {
-  const ss = SpreadsheetApp.getActive();
-  prepareSheet_(ss, "Items", ITEM_COLS);
-  prepareSheet_(ss, "Claims", CLAIM_COLS);
+  autoSetup_();
   photoFolder_();
-  if (!ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === "purgeOldClaims")) {
-    ScriptApp.newTrigger("purgeOldClaims").timeBased().everyDays(1).atHour(2).inTimezone(TZ).create();
-  }
   tell_("The Items and Claims tabs are ready. Next: NULPLF > Set staff login.");
+}
+
+// Also runs by itself the first time the website calls the API, so the menu step is optional.
+function autoSetup_() {
+  const ss = SpreadsheetApp.getActive();
+  if (!ss.getSheetByName("Items")) prepareSheet_(ss, "Items", ITEM_COLS);
+  if (!ss.getSheetByName("Claims")) prepareSheet_(ss, "Claims", CLAIM_COLS);
+  try {
+    if (!ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === "purgeOldClaims")) {
+      ScriptApp.newTrigger("purgeOldClaims").timeBased().everyDays(1).atHour(2).inTimezone(TZ).create();
+    }
+  } catch (e) { /* staff opening the claims list also runs the clean-up */ }
 }
 
 function prepareSheet_(ss, name, cols) {
@@ -307,8 +314,10 @@ function withLock_(fn) {
 }
 
 function sheet_(name) {
-  const sh = SpreadsheetApp.getActive().getSheetByName(name);
-  if (!sh) throw new Error("Open the Google Sheet and run NULPLF > Set up sheets first.");
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName(name);
+  if (!sh) { autoSetup_(); sh = ss.getSheetByName(name); }
+  if (!sh) throw new Error("Open the Google Sheet and run NULPLF > Set up sheets.");
   return sh;
 }
 
