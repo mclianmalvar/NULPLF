@@ -157,6 +157,7 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
 .btnlink{display:inline-flex;align-items:center;gap:8px;min-height:44px;margin-top:14px;padding:10px 18px;border-radius:10px;border:1.5px solid var(--ok);color:var(--ok);font-weight:600;text-decoration:none}
 .btnlink:hover{background:var(--panel)}
 .btnlink svg{width:20px;height:20px}
+.btnrow{display:flex;flex-wrap:wrap;gap:0 10px}
 @media(max-width:900px){.hero,.two,.charts{grid-template-columns:minmax(0,1fr)}footer .cols{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:760px){nav{padding-block:10px;gap:8px 10px}.menu-btn{display:inline-flex}nav .links{display:none;order:3;flex-basis:100%;flex-direction:column;gap:0}nav.open .links{display:flex}nav .links a{padding:12px 2px;border-top:1px solid rgb(255 255 255/.14)}.logo{font-size:20px}.sign-btn{max-width:9em}}
 @media(max-width:420px){.menu-btn .mtxt{display:none}.menu-btn{padding-inline:11px}}
@@ -191,7 +192,7 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
       </div>
       <div class="find" role="search">
         <label for="q" class="hide">Search found items</label>
-        <input id="q" type="search" placeholder="Search: umbrella, black charger, ID…" autocomplete="off">
+        <input id="q" type="search" placeholder="Search: umbrella, payong, black charger, ID…" autocomplete="off">
         <div class="row">
           <select id="fCat" aria-label="Category"></select>
           <select id="fPlace" aria-label="Where it was found"></select>
@@ -217,7 +218,7 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
           <div class="f"><label for="lDate">Date lost</label><input id="lDate" type="date" required></div>
         </div>
         <div class="f"><label for="lItem">What is it?</label><input id="lItem" required placeholder="Blue Aqua Flask tumbler, 32 oz"></div>
-        <div class="f"><label for="lPlace">Where do you think you lost it?</label><select id="lPlace"></select></div>
+        <div class="f"><label for="lPlace">Where do you think you lost it? <small>(optional)</small></label><input id="lPlace" list="placeList" maxlength="80" autocomplete="off" placeholder="Library, 2nd floor study area"><datalist id="placeList"></datalist></div>
         <div class="f"><label for="lDesc">Details <small>(color, brand, stickers, contents)</small></label><textarea id="lDesc" required></textarea></div>
         <label class="consent"><input type="checkbox" id="lConsent"><span><b>I agree</b> that my details are used only to find and return my item, following the Data Privacy Act of 2012 (RA 10173). If I signed in with an email, the Security Office keeps this report for 30 days to email me about possible matches.</span></label>
         <button type="submit" id="lostBtn">Submit report</button>
@@ -248,7 +249,10 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
   <div class="wrap">
     <h2>Security Office: post and release items</h2>
     <p class="lead" id="staffLead">Only staff accounts see this panel.</p>
+    <div class="btnrow">
     <a class="btnlink hide" id="sheetLink" href="#" target="_blank" rel="noopener"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="2.5" width="14" height="15" rx="2"/><path d="M3 7.5h14M3 12.5h14M8.5 7.5v10"/></svg>Open Google Sheet<span class="hide">(opens in a new tab)</span></a>
+    <a class="btnlink" id="posterLink" href="poster.html" target="_blank" rel="noopener"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="2.5" width="6" height="6" rx="1"/><rect x="11.5" y="2.5" width="6" height="6" rx="1"/><rect x="2.5" y="11.5" width="6" height="6" rx="1"/><path d="M11.5 11.5h2.5v2.5M17.5 11.5v6h-6v-2.5"/></svg>Print QR poster<span class="hide">(opens in a new tab)</span></a>
+    </div>
     <div id="staffMsg" class="msg hide" role="status"></div>
     <div class="two">
       <form class="card" id="foundForm" novalidate>
@@ -371,7 +375,7 @@ const TZ="Asia/Manila",HOLD_DAYS=30,KEEP_DAYS=30,BLUR_CATS=["ID","Wallet"];
 /* Demo mode only. With the API, the staff login is checked by Google Apps Script,
    and the real password never appears in this page. */
 const DEMO_STAFF={user:"admin",pass:"lostfound2026"};
-const CATS=["ID","Umbrella","Charger","Tumbler","Calculator","Flash drive","Notebook","Earphones","Bag","Wallet","Other"];
+const CATS=["ID","Umbrella","Charger","Tumbler","Calculator","Flash drive","Notebook","Earphones","Bag","Wallet","Keys","Phone","Eyeglasses","Clothing","Book","Other"];
 const PLACES=["Main lobby","Library","Canteen","Gym","Computer labs","Classrooms, 2nd floor","Classrooms, 3rd floor","Classrooms, 4th floor","Comfort rooms","Parking area","Other"];
 /* Add ?demo to the page link to show the sample data instead (handy for presentations). */
 const DEMO_LINK=/[?&]demo\b/.test(location.search);
@@ -428,11 +432,16 @@ const ICON={
  "Earphones":'<rect x="30" y="22" width="40" height="30" rx="14" fill="#f4f4f4" stroke="#b8955a" stroke-width="2"/><path d="M30 34h40" stroke="#b8955a" stroke-width="1.5"/><circle cx="50" cy="44" r="2" fill="#2a2112"/>',
  "Bag":'<path d="M24 26h52l-4 36H28z" fill="#2a2112"/><path d="M38 26v-6a12 10 0 0 1 24 0v6" stroke="#2a2112" stroke-width="4" fill="none"/><rect x="40" y="36" width="20" height="10" rx="2" fill="#d43a2f"/>',
  "Wallet":'<rect x="22" y="20" width="56" height="34" rx="5" fill="#7d4a26"/><rect x="56" y="30" width="22" height="14" rx="4" fill="#5c361b"/><circle cx="64" cy="37" r="2.5" fill="#ecd09a"/>',
+ "Keys":'<circle cx="30" cy="24" r="10" fill="none" stroke="#b8955a" stroke-width="4"/><rect x="16" y="36" width="16" height="22" rx="3" fill="#2337c6"/><circle cx="48" cy="34" r="9" fill="#ecd09a"/><circle cx="48" cy="34" r="3" fill="#fff"/><path d="M55 38l24 14" stroke="#ecd09a" stroke-width="6" stroke-linecap="round"/><path d="M70 47l-3 7M76 50l-3 7" stroke="#ecd09a" stroke-width="4" stroke-linecap="round"/>',
+ "Phone":'<rect x="35" y="8" width="30" height="54" rx="6" fill="#2a2112"/><rect x="38" y="15" width="24" height="38" rx="2" fill="#2337c6"/><circle cx="50" cy="57" r="2" fill="#c9c9c9"/>',
+ "Eyeglasses":'<circle cx="34" cy="38" r="13" fill="#ffffff" fill-opacity=".35" stroke="#2a2112" stroke-width="4"/><circle cx="66" cy="38" r="13" fill="#ffffff" fill-opacity=".35" stroke="#2a2112" stroke-width="4"/><path d="M47 36q3-5 6 0" stroke="#2a2112" stroke-width="3.5" fill="none"/><path d="M21 35l-8-9M79 35l8-9" stroke="#2a2112" stroke-width="3.5" stroke-linecap="round"/>',
+ "Clothing":'<path d="M38 12L20 22l6 12 8-4v30h32V30l8 4 6-12-18-10q-12 8-24 0z" fill="#d43a2f"/>',
+ "Book":'<rect x="26" y="12" width="44" height="50" rx="3" fill="#d43a2f"/><rect x="68" y="15" width="7" height="44" rx="1" fill="#f4f4f4" stroke="#b8955a" stroke-width="1.5"/><rect x="34" y="22" width="26" height="8" rx="1" fill="#ecd09a"/>',
  "Other":'<rect x="28" y="22" width="44" height="34" rx="4" fill="#b8955a"/><path d="M28 32h44M50 22v34" stroke="#2a2112" stroke-width="2.5"/>'};
 const icon=c=>`<svg viewBox="0 0 100 70" aria-hidden="true">${ICON[c]||ICON.Other}</svg>`;
 const opts=(arr,first)=>(first?`<option value="">${first}</option>`:"")+arr.map(x=>`<option>${esc(x)}</option>`).join("");
 $("#fCat").innerHTML=opts(CATS,"All categories");$("#fPlace").innerHTML=opts(PLACES,"Anywhere on campus");
-$("#lCat").innerHTML=opts(CATS);$("#sCat").innerHTML=opts(CATS);$("#lPlace").innerHTML=opts(PLACES,"Not sure");$("#sPlace").innerHTML=opts(PLACES);
+$("#lCat").innerHTML=opts(CATS);$("#sCat").innerHTML=opts(CATS);$("#placeList").innerHTML=PLACES.filter(x=>x!=="Other").map(x=>`<option value="${esc(x)}">`).join("");$("#sPlace").innerHTML=opts(PLACES);
 $("#lDate").value=today;$("#sDate").value=today;$("#lDate").max=today;$("#sDate").max=today;
 $("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);
 
@@ -542,9 +551,26 @@ function photoSrc(i){
   if(!API&&typeof i.photoUrl==="string"&&i.photoUrl.startsWith("blob:"))return i.photoUrl;
   return "";
 }
+/* Search understands Filipino and everyday words: "payong" finds umbrellas, "susi" finds keys.
+   Words in one group mean the same thing. Every word typed must match (in any order). */
+const SYN=[["umbrella","payong"],["key","keys","susi"],["wallet","pitaka","purse","coin purse"],
+ ["phone","cellphone","cp","selpon","telepono","mobile","smartphone"],["eyeglasses","glasses","salamin","specs"],
+ ["clothing","clothes","damit","shirt","t-shirt","tshirt","polo","jacket","dyaket","hoodie","sweater","uniform"],
+ ["book","books","libro","aklat","textbook"],["notebook","kuwaderno","kwaderno","notbuk"],
+ ["tumbler","tubigan","bottle","water bottle","jug"],["charger","kable","cable"],
+ ["earphones","earphone","headset","headphones","earbuds","airpods"],["calculator","kalkulador","calcu"],
+ ["bag","backpack","bayong"],["flash drive","flashdrive","usb","thumb drive"],["id","aydi","lanyard"],
+ ["watch","relo","relos"],["shoes","sapatos"],["slippers","tsinelas"],["hat","cap","sumbrero"],["handkerchief","panyo"]];
+const SYN_OF=Object.fromEntries(SYN.flatMap(g=>g.map(w=>[w,g])));
+const wordIn=(w,h)=>new RegExp(`(^|[^a-z0-9])${w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}([^a-z0-9]|$)`).test(h);
+const hits=(w,h)=>h.includes(w)||(SYN_OF[w]||[]).some(s=>wordIn(s,h));
 function visible(){
-  const q=$("#q").value.trim().toLowerCase(),c=$("#fCat").value,p=$("#fPlace").value,sc=$("#fClaimed").checked;
-  return items.filter(i=>(sc||i.status!=="claimed")&&(!c||i.cat===c)&&(!p||i.place===p)&&(!q||[i.name,i.cat,i.place,i.desc,i.tag].join(" ").toLowerCase().includes(q))).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const words=$("#q").value.trim().toLowerCase().split(/\s+/).filter(Boolean),c=$("#fCat").value,p=$("#fPlace").value,sc=$("#fClaimed").checked;
+  return items.filter(i=>{
+    if(!(sc||i.status!=="claimed")||(c&&i.cat!==c)||(p&&i.place!==p))return false;
+    const h=[i.name,i.cat,i.place,i.desc,i.tag].join(" ").toLowerCase();
+    return words.every(w=>hits(w,h));
+  }).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
 function renderBoard(){
   if(!loaded){$("#stat").innerHTML="";$("#board").innerHTML=`<div class="empty">Loading found items…</div>`;return}
@@ -718,7 +744,7 @@ $("#lostForm").addEventListener("submit",async e=>{
   if(!my.profile){openSign(()=>$("#lostForm").requestSubmit(),"student");return}
   if(!filled(["#lItem","#lDesc","#lDate"])){show($("#lostMsg"),"Please fill in the fields marked in red.");return}
   if(!$("#lConsent").checked){show($("#lostMsg"),"Tick the consent box to save your report.");return}
-  const p=my.profile,r={id:newId("LR"),cat:$("#lCat").value,date:$("#lDate").value,item:$("#lItem").value.trim(),place:$("#lPlace").value,desc:$("#lDesc").value.trim(),at:new Date().toISOString()};
+  const p=my.profile,r={id:newId("LR"),cat:$("#lCat").value,date:$("#lDate").value,item:$("#lItem").value.trim(),place:$("#lPlace").value.trim().slice(0,80),desc:$("#lDesc").value.trim(),at:new Date().toISOString()};
   let note="";
   if(API&&isEmail(p.contact)){
     $("#lostBtn").disabled=true;

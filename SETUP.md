@@ -52,6 +52,8 @@ With `API_URL` empty, the page runs in demo mode with sample items and the demo 
   and mark items claimed.
 - Staff can also type a row straight into the **Items** tab: fill in `name`, `cat`, `place` and
   `date`, and leave `id` and `tag` empty. They're filled in the next time someone opens the site.
+- **Posters:** in the Staff panel, click **Print QR poster** (or open `poster.html`) for an A4
+  poster with a QR code to the site. Print it at 100% scale with background graphics on.
 - The **Claims** tab holds students' names, student numbers and contact details. Share the sheet
   only with Security Office staff (Share → add their emails). Details are cleared automatically
   30 days after a claim is closed.

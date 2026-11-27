@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lost & Found Poster</title>
+<meta name="description" content="Printable A4 poster with a QR code to the NULP Lost & Found board.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* A4 poster for the lobby, library, canteen and Security Office.
+   Same look as the site: cobalt band, kraft luggage tag, red stamp. Print on A4 at 100% scale. */
+:root{color-scheme:light;--cobalt:#2337c6;--cobalt2:#1b2ca6;--kraft:#ecd09a;--kraftd:#b8955a;--tagink:#2a2112;--red:#d43a2f;--ink:#141a3a;--muted:#555c7e}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:#e9ebf5;color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 16px;padding:14px 16px;font-size:15px}
+.bar button{font:600 16px Inter,sans-serif;color:#fff;background:var(--cobalt);border:0;border-radius:10px;padding:10px 20px;min-height:44px;cursor:pointer}
+.bar button:hover{background:var(--cobalt2)}
+.bar span{color:var(--muted)}
+.stage{display:flex;justify-content:center;padding:0 16px 32px}
+.sheet{width:210mm;height:297mm;background:#fff;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 6px 30px rgb(20 26 58/.18)}
+.top{background:var(--cobalt);color:#fff;padding:16mm 16mm 12mm}
+.logo{display:flex;align-items:center;gap:3mm;font:800 7mm Archivo,sans-serif;letter-spacing:-.01em}
+.logo svg{width:9mm;height:9mm}
+h1{font:800 19mm/0.95 Archivo,sans-serif;letter-spacing:-.03em;margin:9mm 0 0}
+.fil{font:600 8mm/1.2 Inter,sans-serif;margin:4mm 0 0;opacity:.92}
+.mid{flex:1;display:grid;grid-template-columns:92mm 1fr;gap:10mm;align-items:center;padding:12mm 16mm}
+.tag{position:relative;background:var(--kraft);border:0.6mm solid var(--kraftd);border-radius:5mm;padding:12mm 7mm 7mm;text-align:center;clip-path:polygon(14mm 0,calc(100% - 14mm) 0,100% 14mm,100% 100%,0 100%,0 14mm)}
+.tag::before{content:"";position:absolute;top:4mm;left:50%;width:6mm;height:6mm;margin-left:-3mm;border-radius:50%;background:#fff;border:0.6mm solid var(--kraftd)}
+.qr{background:#fff;border-radius:2mm;padding:2mm;line-height:0}
+.qr svg{width:100%;height:auto;display:block}
+.qr .fail{line-height:1.4;font-size:4.5mm;padding:20mm 4mm;color:var(--tagink)}
+.scan{font:800 6.2mm/1.15 Archivo,sans-serif;color:var(--tagink);margin:5mm 0 1mm}
+.url{font:600 4.6mm Inter,sans-serif;color:var(--tagink);word-break:break-all}
+.stamp{position:absolute;right:5mm;top:4.5mm;font:800 3.6mm Archivo,sans-serif;color:var(--red);border:0.5mm solid var(--red);border-radius:1.5mm;padding:0.4mm 1.6mm;transform:rotate(6deg)}
+ol{list-style:none;margin:0;padding:0;display:grid;gap:7mm;counter-reset:s}
+li{counter-increment:s;display:grid;grid-template-columns:11mm 1fr;gap:4mm;align-items:start}
+li::before{content:counter(s);display:grid;place-items:center;width:11mm;height:11mm;border-radius:50%;background:var(--cobalt);color:#fff;font:800 6mm Archivo,sans-serif}
+li b{display:block;font:800 6.6mm/1.1 Archivo,sans-serif;letter-spacing:-.01em}
+li span{display:block;font-size:4.6mm;line-height:1.35;color:var(--muted);margin-top:1.2mm}
+.foot{border-top:0.5mm solid #dfe2f0;padding:8mm 16mm 10mm;display:grid;grid-template-columns:1fr auto;gap:4mm 10mm;align-items:end}
+.foot h2{font:800 6.4mm/1.1 Archivo,sans-serif;margin:0 0 1.5mm}
+.foot p{margin:0;font-size:4.4mm;line-height:1.4;color:var(--muted)}
+.foot .found{text-align:right}
+.small{grid-column:1/-1;font-size:3.4mm!important;color:#8a90ad!important}
+@page{size:A4;margin:0}
+@media print{
+  body{background:#fff}
+  .bar{display:none}
+  .stage{padding:0;display:block}
+  .sheet{box-shadow:none;zoom:1!important}
+}
+</style>
+</head>
+<body>
+<div class="bar">
+  <button type="button" id="print">Print poster</button>
+  <span>Print on A4 paper at 100% scale. Turn on "Background graphics" if the blue band is missing.</span>
+</div>
+<div class="stage">
+<main class="sheet" id="sheet">
+  <header class="top">
+    <div class="logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 3h14l6 6v20H3V9z" fill="#ecd09a"/><circle cx="16" cy="9" r="2.6" fill="#2337c6"/><path d="M9 16h14M9 21h9" stroke="#2a2112" stroke-width="2.4" stroke-linecap="round"/></svg>NULP Lost &amp; Found</div>
+    <h1>Lost something on campus?</h1>
+    <p class="fil">Nawalan ka ba ng gamit? Check here first.</p>
+  </header>
+  <section class="mid">
+    <div class="tag">
+      <span class="stamp">NULP</span>
+      <div class="qr" id="qr" role="img" aria-label="QR code to the NULP Lost & Found website"></div>
+      <div class="scan">Scan to see the found items</div>
+      <div class="url" id="url"></div>
+    </div>
+    <ol>
+      <li><div><b>Search from your phone</b><span>Every item turned in to the Security Office is posted with a photo, where and when it was found, and a tag number.</span></div></li>
+      <li><div><b>Claim it</b><span>Sign in and describe something only the owner would know. Staff check every claim.</span></div></li>
+      <li><div><b>Pick it up once</b><span>When your claim is approved, show your NU ID at the Security Office.</span></div></li>
+    </ol>
+  </section>
+  <footer class="foot">
+    <div>
+      <h2>Security Office</h2>
+      <p>Ground floor, near the main gate<br>Monday to Saturday, 7:00 AM to 8:00 PM</p>
+    </div>
+    <div class="found">
+      <h2>Found something?</h2>
+      <p>Bring it to the Security Office.<br>We'll post it for its owner.</p>
+    </div>
+    <p class="small">A student project for Science, Technology and Society (STS), NU Las Pi&ntilde;as.</p>
+  </footer>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+/* The QR code points to the main site. Add ?url=https://... to the poster link to use another address. */
+const SITE="https://nulplf.netlify.app/";
+const want=new URLSearchParams(location.search).get("url");
+const url=want&&/^https:\/\/[^\s]+$/.test(want)?want:SITE;
+document.getElementById("url").textContent=url.replace(/^https:\/\//,"").replace(/\/$/,"");
+const box=document.getElementById("qr");
+try{
+  const qr=qrcode(0,"M");qr.addData(url);qr.make();
+  const n=qr.getModuleCount(),m=2;let d="";
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))d+=`M${c+m} ${r+m}h1v1h-1z`;
+  box.innerHTML=`<svg viewBox="0 0 ${n+2*m} ${n+2*m}" shape-rendering="crispEdges" aria-hidden="true"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#141a3a"/></svg>`;
+}catch(e){
+  box.innerHTML=`<div class="fail">The QR code couldn't load. Check your internet connection and reload this page.</div>`;
+}
+/* On screen, shrink the A4 sheet to fit the window. Printing always uses the full A4 size. */
+const sheet=document.getElementById("sheet");
+const fit=()=>{const w=sheet.offsetWidth;sheet.style.zoom=Math.min(1,(innerWidth-32)/w).toFixed(3)};
+addEventListener("resize",fit);fit();
+document.getElementById("print").addEventListener("click",()=>print());
+</script>
+</body>
+</html>

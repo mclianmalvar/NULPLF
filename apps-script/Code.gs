@@ -30,7 +30,7 @@ const MAX_REPORTS_PER_DAY = 5;
 const ITEM_COLS = ["id", "tag", "name", "cat", "place", "date", "desc", "status", "photoId", "blurred", "postedAt", "releasedAt"];
 const CLAIM_COLS = ["cid", "itemId", "itemName", "tag", "name", "studentNo", "contact", "proof", "consent", "status", "at", "decidedAt", "purged"];
 const REPORT_COLS = ["rid", "name", "email", "cat", "date", "item", "place", "at", "notified"];
-const CATS = ["ID", "Umbrella", "Charger", "Tumbler", "Calculator", "Flash drive", "Notebook", "Earphones", "Bag", "Wallet", "Other"];
+const CATS = ["ID", "Umbrella", "Charger", "Tumbler", "Calculator", "Flash drive", "Notebook", "Earphones", "Bag", "Wallet", "Keys", "Phone", "Eyeglasses", "Clothing", "Book", "Other"];
 const PLACES = ["Main lobby", "Library", "Canteen", "Gym", "Computer labs", "Classrooms, 2nd floor", "Classrooms, 3rd floor", "Classrooms, 4th floor", "Comfort rooms", "Parking area", "Other"];
 
 /* ===================== Sheet menu and one-time setup ===================== */
@@ -230,7 +230,7 @@ function report_(req) {
     const rid = "LR-" + Utilities.getUuid().replace(/-/g, "").slice(0, 12).toUpperCase();
     add_("Reports", REPORT_COLS, {
       rid, name, email, cat: pick_(req.cat, CATS), date: day_(req.date), item,
-      place: str_(req.place) ? pick_(req.place, PLACES) : "", at: new Date().toISOString(), notified: ""
+      place: str_(req.place, 80), at: new Date().toISOString(), notified: "" // typed by the student, so not limited to PLACES
     });
     return { ok: true, rid };
   });
