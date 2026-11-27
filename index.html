@@ -350,6 +350,9 @@ footer p{margin:6px 0 0;opacity:.9;font-size:15px}
 /* Paste your Google Apps Script web app link here (it ends in /exec).
    Leave it empty to run in demo mode with sample items. */
 const API_URL="https://script.google.com/macros/s/AKfycbyIPptDMPZHVw_L1R9PFNXImL3GKajCo0F5w09gwVAwIYrakg_qtbeiWEp-Hmgz-9mR6A/exec";
+/* The Security Office's Google Sheet, for the staff-only "Open Google Sheet" button.
+   The sheet stays private: only people it's shared with can open it. */
+const SHEET_URL="https://docs.google.com/spreadsheets/d/1uC3N_y_SJex_gNBe9u4q-biNlfGTzaV25heFplya5n0/edit";
 const TZ="Asia/Manila",HOLD_DAYS=30,KEEP_DAYS=30,BLUR_CATS=["ID","Wallet"];
 /* Demo mode only. With the API, the staff login is checked by Google Apps Script,
    and the real password never appears in this page. */
@@ -542,7 +545,8 @@ function renderWho(){
 }
 function renderStaff(){
   $("#staffLink").classList.toggle("hide",!staffIn);$("#staff").classList.toggle("hide",!staffIn);if(!staffIn)return;
-  $("#sheetLink").classList.toggle("hide",!sheetUrl);if(sheetUrl)$("#sheetLink").href=sheetUrl;
+  const su=sheetUrl||(API&&/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[\w-]+\/edit$/.test(SHEET_URL)?SHEET_URL:"");
+  $("#sheetLink").classList.toggle("hide",!su);if(su)$("#sheetLink").href=su;
   $("#staffLead").textContent=API?"Logged in as Security Office staff. Items you post show up on every student's phone within a minute.":"Demo mode: logged in as Security Office staff. Changes reset when you reload.";
   const pend=allClaims.filter(c=>c.status==="pending");
   $("#claimTbl tbody").innerHTML=pend.length?pend.map(c=>`<tr><td><b>${esc(c.itemName)}</b><br><span class="nw">${esc(c.tag)}</span></td><td>${esc(c.name)}<br>${esc(c.studentNo)}<br>${esc(c.contact)}</td><td>${esc(c.proof)}</td><td><div class="act"><button type="button" data-ok="${esc(c.cid)}">Approve</button><button type="button" class="alt" data-no="${esc(c.cid)}">Reject</button></div></td></tr>`).join(""):`<tr><td colspan="4">No pending claims.</td></tr>`;
