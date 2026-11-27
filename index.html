@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NULPLF Lost and Found</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday campus service: friendly, orderly, quick to scan
+   IDEA the Security Office's lost-and-found tag: kraft luggage tags, punched hole, stamped tag number
+   PICTURE the live board of tagged found items, right under the title
+   COLOUR cobalt field #2337c6 to the edges, white ground below, kraft tags #ecd09a, red stamp #d43a2f; night #0c1030
+   TYPE Archivo 800 display + Inter text
+   LAYOUT laptop: nav, title + search across the top, board grid beneath on the cobalt field; phone: compact nav with menu, title, board, controls stack */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0c1030);--ink:light-dark(#141a3a,#eef0ff);--muted:light-dark(#555c7e,#aab0d4);--band:light-dark(#2337c6,#17227c);--band2:light-dark(#1b2ca6,#111a63);--onband:#ffffff;--kraft:#ecd09a;--kraftd:#b8955a;--tagink:#2a2112;--red:light-dark(#d43a2f,#ff6f61);--panel:light-dark(#f3f4fb,#141a48);--line:light-dark(#d6d9ee,#2b3373);--ok:light-dark(#2337c6,#8ea0ff)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{scroll-padding-top:80px;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:Archivo,Inter,sans-serif;letter-spacing:-.02em;line-height:1.05;margin:0}
+h1{font-size:clamp(32px,5vw,52px);font-weight:800;text-wrap:balance;max-width:16ch}
+h2{font-size:clamp(26px,3.4vw,36px);font-weight:800;text-wrap:balance}
+h3{font-size:19px;font-weight:700}
+a{color:inherit}
+.band{padding-block:clamp(28px,4vw,64px);padding-left:max(5vw,16px);padding-right:max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+.top{background:var(--band);color:var(--onband)}
+nav{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:14px max(5vw,16px);background:var(--band);color:#fff;position:sticky;top:0;z-index:5;border-bottom:1px solid rgb(255 255 255/.14)}
+.logo{display:flex;align-items:center;gap:10px;font:800 22px Archivo,sans-serif;text-decoration:none;margin-right:auto}
+.logo svg{width:30px;height:30px}
+nav .links{display:flex;flex-wrap:wrap;gap:4px 16px}
+nav .links a{text-decoration:none;font-weight:500;padding:8px 2px;opacity:.92}
+nav .links a:hover,nav .links a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:5px}
+nav button{min-height:40px;padding:8px 14px;font-size:15px}
+.sign-btn{background:#fff;color:#2337c6;max-width:14em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-btn{display:none;align-items:center;gap:8px;background:transparent;color:#fff;border:1.5px solid rgb(255 255 255/.55)}
+.menu-btn svg{width:18px;height:18px}
+.dot{display:inline-block;min-width:20px;padding:0 6px;border-radius:10px;background:var(--red);color:#fff;font-size:13px;text-align:center;margin-left:4px}
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px 40px;align-items:end}
+.hero p{margin:14px 0 0;max-width:52ch;opacity:.92}
+.find{display:grid;gap:10px}
+.find .row{display:flex;flex-wrap:wrap;gap:8px}
+input,select,textarea{font:16px Inter,sans-serif;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;min-height:44px;width:100%}
+textarea{min-height:88px;resize:vertical}
+[aria-invalid=true]{border-color:var(--red)}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.top input,.top select{border-color:transparent}
+.find .row select{flex:1 1 150px;width:auto}
+.chk{display:flex;align-items:center;gap:8px;font-size:15px;white-space:nowrap;min-height:44px}
+.chk input{width:20px;height:20px;min-height:0;accent-color:var(--red)}
+button{font:600 16px Inter,sans-serif;min-height:44px;padding:10px 18px;border-radius:10px;border:0;cursor:pointer;background:var(--band);color:#fff}
+button:hover{filter:brightness(1.1)}
+button.alt{background:transparent;color:inherit;border:1.5px solid currentColor}
+button.red{background:var(--red)}
+button.link{background:none;color:inherit;padding:0;min-height:0;font:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.stat{margin-top:26px;display:flex;flex-wrap:wrap;gap:6px 22px;font-size:15px;opacity:.95}
+.stat b{font:800 22px Archivo,sans-serif;margin-right:6px}
+.note{font-size:13px;opacity:.85;margin-top:12px}
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:26px 18px;margin-top:22px}
+.tag{position:relative;background:var(--kraft);color:var(--tagink);padding:34px 14px 14px;clip-path:polygon(16% 0,84% 0,100% 8%,100% 100%,0 100%,0 8%);display:flex;flex-direction:column;gap:6px;transition:transform .2s}
+.tag:hover{transform:translateY(-3px) rotate(-.6deg)}
+.tag::before{content:"";position:absolute;top:11px;left:50%;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--band);box-shadow:0 0 0 3px var(--kraftd)}
+.tag .no{position:absolute;top:10px;right:14px;font:700 13px Archivo,sans-serif;color:var(--red);border:1.5px solid var(--red);border-radius:4px;padding:0 5px;transform:rotate(4deg)}
+.tag .pic{position:relative;background:#fff8ea;border:1px solid var(--kraftd);border-radius:6px;aspect-ratio:10/7;display:grid;place-items:center;overflow:hidden}
+.tag .pic img{width:100%;height:100%;object-fit:cover}
+.tag .pic svg{width:72%;height:72%}
+.blurtag{position:absolute;left:6px;bottom:6px;font-size:12px;font-weight:600;background:rgb(42 33 18/.85);color:#fff;padding:2px 8px;border-radius:12px}
+.tag h3{font-size:18px;margin-top:4px}
+.tag .meta{font-size:14px;line-height:1.4}
+.tag .desc{font-size:14px;line-height:1.4;opacity:.85}
+.tag .foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:6px}
+.tag button{background:var(--tagink);color:var(--kraft);padding:8px 14px;min-height:40px;font-size:15px}
+.badge{font-size:13px;font-weight:600;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.b-available{background:#fff;color:#2337c6}
+.b-pending{background:var(--red);color:#fff}
+.b-claimed{background:#7d6a45;color:#fff}
+.tag.claimed{filter:grayscale(.6);opacity:.7}
+.empty{grid-column:1/-1;background:var(--band2);border-radius:12px;padding:28px;text-align:center}
+.two{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px 48px;margin-top:22px}
+.lead{color:var(--muted);max-width:60ch;margin:10px 0 0}
+.muted{color:var(--muted)}
+form.card,.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
+form .f{display:grid;gap:6px;margin-bottom:14px}
+form .g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 12px}
+label{font-weight:600;font-size:15px}
+label small,.f small{font-weight:400;color:var(--muted)}
+.who{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:12px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line);margin-bottom:16px;font-size:15px}
+.card .who{background:var(--bg)}
+.who.out{border-style:dashed}
+.seg{display:inline-flex;flex-wrap:wrap;border:1.5px solid var(--line);border-radius:12px;padding:3px;gap:3px;margin-top:14px}
+.seg button{background:transparent;color:var(--ink);min-height:38px;padding:6px 14px;font-size:15px}
+.seg button[aria-pressed=true]{background:var(--band);color:#fff}
+.consent{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:14px;line-height:1.45;margin:2px 0 16px;color:var(--muted)}
+.consent input{width:20px;height:20px;min-height:0;flex:none;margin:1px 0 0;accent-color:var(--red)}
+.consent b{color:var(--ink);font-weight:600}
+.mine{display:grid;gap:12px}
+.req{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--bg)}
+.req .h{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.req .h b{font-family:Archivo,sans-serif}
+.req p{margin:6px 0 0;font-size:15px;color:var(--muted)}
+.match{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--kraft);color:var(--tagink);font-size:15px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.match a{font-weight:600}
+.route{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;margin-top:30px;position:relative}
+.route::before{content:"";position:absolute;top:27px;left:12%;right:12%;height:4px;background:var(--red);border-radius:2px}
+.stop{position:relative;text-align:center}
+.stop .c{width:58px;height:58px;margin:0 auto 12px;border-radius:50%;background:var(--band);display:grid;place-items:center;box-shadow:0 0 0 6px var(--bg)}
+.stop .c svg{width:30px;height:30px}
+.stop p{margin:6px auto 0;color:var(--muted);font-size:15px;max-width:26ch}
+.alt-band{background:var(--panel)}
+.alt-band .stop .c{box-shadow:0 0 0 6px var(--panel)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:14px}
+td .act{display:flex;gap:6px;flex-wrap:wrap}
+td button{min-height:36px;padding:6px 12px;font-size:14px}
+.nw{white-space:nowrap}
+.old{color:var(--red);font-weight:600}
+.sub{display:block;font-size:13px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:16px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.tile b{display:block;font:800 36px/1.1 Archivo,sans-serif;font-variant-numeric:tabular-nums}
+.tile span{display:block;color:var(--muted);font-size:14px;margin-top:4px}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 48px;margin-top:26px}
+.bars{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+.bars li{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr) 2.2em;align-items:center;gap:10px;font-size:14px;padding:4px 0;border-radius:6px}
+.bars li:hover{background:var(--panel)}
+.bars .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bars .bar{display:block;height:12px;background:var(--ok);border-radius:0 4px 4px 0;min-width:3px}
+.bars .val{font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
+details{border-bottom:1px solid var(--line);padding:14px 0}
+summary{font-weight:600;cursor:pointer;min-height:28px;font-size:17px}
+details p{margin:8px 0 0;color:var(--muted);max-width:70ch}
+footer{background:var(--band);color:#fff}
+footer .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+footer p{margin:6px 0 0;opacity:.9;font-size:15px}
+.ov{position:fixed;inset:0;background:rgb(8 12 40/.6);display:none;place-items:center;padding:16px;z-index:20}
+.ov.on{display:grid}
+.modal{background:var(--bg);color:var(--ink);border-radius:16px;max-width:520px;width:100%;max-height:92vh;overflow:auto;padding:24px}
+.modal .x{float:right;background:transparent;color:var(--ink);padding:6px 10px;font-size:22px}
+.msg{padding:12px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line);margin-top:12px;font-size:15px}
+.hide{display:none!important}
+.prev{max-height:160px;max-width:100%;border-radius:8px;margin-top:6px}
+@media(max-width:900px){.hero,.two,.charts{grid-template-columns:minmax(0,1fr)}footer .cols{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){nav{padding-block:10px;gap:8px 10px}.menu-btn{display:inline-flex}nav .links{display:none;order:3;flex-basis:100%;flex-direction:column;gap:0}nav.open .links{display:flex}nav .links a{padding:12px 2px;border-top:1px solid rgb(255 255 255/.14)}.logo{font-size:20px}.sign-btn{max-width:9em}}
+@media(max-width:420px){.menu-btn .mtxt{display:none}.menu-btn{padding-inline:11px}}
+@media(max-width:360px){.sign-btn .adm{display:none}}
+@media(max-width:720px){.route{grid-template-columns:minmax(0,1fr)}.route::before{top:12px;bottom:12px;left:28px;right:auto;width:4px;height:auto}.stop{display:grid;grid-template-columns:58px minmax(0,1fr);gap:0 16px;text-align:left}.stop .c{margin:0;grid-row:span 2}.stop p{margin:4px 0 0}}
+@media(max-width:600px){form .g2{grid-template-columns:minmax(0,1fr)}.board{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:18px 12px}table{font-size:13px}th,td{padding:6px 4px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{display:flex;justify-content:space-between;gap:12px;border:0}.stack td::before{content:attr(data-l);color:var(--muted);flex:none}.bars li{grid-template-columns:minmax(0,9em) minmax(0,1fr) 2em}.tile b{font-size:30px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.tag{transition:none}.tag:hover{transform:none}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<nav aria-label="Main" id="nav">
+  <a class="logo" href="#found"><svg viewBox="0 0 30 30" aria-hidden="true"><path d="M8 2h14l5 4v22H3V6z" fill="#ecd09a"/><circle cx="15" cy="7" r="2.6" fill="#2337c6" stroke="#b8955a" stroke-width="1.4"/><path d="M8 15h14M8 19h10M8 23h12" stroke="#2a2112" stroke-width="2" stroke-linecap="round"/></svg>NULPLF</a>
+  <div class="links" id="navLinks">
+    <a href="#found">Found items</a>
+    <a href="#report">Report lost item</a>
+    <a href="#mine">My requests<span id="mineDot" class="dot hide"></span></a>
+    <a href="#how">How it works</a>
+    <a href="#staff" id="staffLink" class="hide">Staff</a>
+    <a href="#faq">FAQ</a>
+  </div>
+  <button type="button" class="sign-btn" id="signBtn" data-sign>Sign in</button>
+  <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="navLinks"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mtxt">Menu</span></button>
+</nav>
+
+<header class="top band" id="found">
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <h1>Check if your lost item was turned in</h1>
+        <p>Every item handed to the NU Las Piñas Security Office is posted here with a photo, where it was found and when. If it's yours, request a claim and pick it up once.</p>
+      </div>
+      <div class="find" role="search">
+        <label for="q" class="hide">Search found items</label>
+        <input id="q" type="search" placeholder="Search: umbrella, black charger, ID…" autocomplete="off">
+        <div class="row">
+          <select id="fCat" aria-label="Category"></select>
+          <select id="fPlace" aria-label="Where it was found"></select>
+          <label class="chk"><input type="checkbox" id="fClaimed"> Show claimed</label>
+        </div>
+      </div>
+    </div>
+    <div class="stat" id="stat" aria-live="polite"></div>
+    <div class="board" id="board"></div>
+    <p class="note" id="srcNote">Loading items…</p>
+  </div>
+</header>
+
+<section class="band" id="report">
+  <div class="wrap">
+    <h2>Didn't see your item? Report it</h2>
+    <p class="lead">Describe what you lost. When the Security Office posts something in the same category, it shows up as a possible match under My requests.</p>
+    <div class="two">
+      <form class="card" id="lostForm" novalidate>
+        <div class="who" id="lWho"></div>
+        <div class="g2">
+          <div class="f"><label for="lCat">Category</label><select id="lCat" required></select></div>
+          <div class="f"><label for="lDate">Date lost</label><input id="lDate" type="date" required></div>
+        </div>
+        <div class="f"><label for="lItem">What is it?</label><input id="lItem" required placeholder="Blue Aqua Flask tumbler, 32 oz"></div>
+        <div class="f"><label for="lPlace">Where do you think you lost it?</label><select id="lPlace"></select></div>
+        <div class="f"><label for="lDesc">Details <small>(color, brand, stickers, contents)</small></label><textarea id="lDesc" required></textarea></div>
+        <label class="consent"><input type="checkbox" id="lConsent"><span><b>I agree</b> that my details are used only to find and return my item, following the Data Privacy Act of 2012 (RA 10173). Only I can see this report.</span></label>
+        <button type="submit" id="lostBtn">Submit report</button>
+        <div id="lostMsg" class="msg hide" role="status"></div>
+      </form>
+      <div id="mine">
+        <h3>My requests</h3>
+        <p class="lead" style="margin-bottom:14px">Your lost-item reports and claim requests, with their status.</p>
+        <div class="mine" id="mineList"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band alt-band" id="how">
+  <div class="wrap">
+    <h2>From lost to back in your bag</h2>
+    <div class="route">
+      <div class="stop"><div class="c"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 9l8-5 8 5v10H4z"/><path d="M9 19v-6h6v6"/></svg></div><h3>Item is turned in</h3><p>Someone finds it and hands it to the Security Office.</p></div>
+      <div class="stop"><div class="c"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-5-5-9 8"/></svg></div><h3>Staff post it here</h3><p>A photo, where and when it was found, and a tag number. IDs and wallets are blurred.</p></div>
+      <div class="stop"><div class="c"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></div><h3>You check and claim</h3><p>Search from your phone, sign in, and describe something only the owner would know.</p></div>
+      <div class="stop"><div class="c"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="8.5" cy="12" r="2"/><path d="M13 10h5M13 14h4"/></svg></div><h3>Pick it up once</h3><p>Show your NU ID at the Security Office when your claim is approved.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band hide" id="staff">
+  <div class="wrap">
+    <h2>Security Office: post and release items</h2>
+    <p class="lead" id="staffLead">Only editors of this page see this panel.</p>
+    <div class="two">
+      <form class="card" id="foundForm" novalidate>
+        <h3 style="margin-bottom:14px">Post a found item</h3>
+        <div class="f"><label for="sName">Item</label><input id="sName" required placeholder="Black umbrella with wooden handle"></div>
+        <div class="g2">
+          <div class="f"><label for="sCat">Category</label><select id="sCat"></select></div>
+          <div class="f"><label for="sDate">Date found</label><input id="sDate" type="date" required></div>
+        </div>
+        <div class="f"><label for="sPlace">Where found</label><select id="sPlace"></select></div>
+        <div class="f"><label for="sDesc">Public description <small>(leave out details only the owner should know)</small></label><textarea id="sDesc"></textarea></div>
+        <div class="f">
+          <label for="sPhoto">Photo <small>(optional, shrunk before upload)</small></label><input id="sPhoto" type="file" accept="image/*">
+          <label class="chk" style="white-space:normal"><input type="checkbox" id="sBlur"> Blur photo before posting</label>
+          <small>Turned on for IDs and wallets, so names, faces and numbers can't be read.</small>
+          <img id="sPrev" class="prev hide" alt="Photo as it will be posted">
+          <small id="sPhotoNote" class="hide"></small>
+        </div>
+        <button type="submit" id="foundBtn">Post item</button>
+        <div id="foundMsg" class="msg hide" role="status"></div>
+      </form>
+      <div>
+        <h3>Claim requests</h3>
+        <div class="scroll"><table class="stack" id="claimTbl"><thead><tr><th>Item</th><th>Claimant</th><th>Proof</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+        <h3 style="margin-top:28px">Closed claims</h3>
+        <p class="lead" style="font-size:15px;margin:6px 0 4px">Claimant details are deleted automatically 30 days after a claim is closed.</p>
+        <div class="scroll"><table class="stack" id="closedTbl"><thead><tr><th>Item</th><th>Claimant</th><th>Result</th><th>Closed</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+    <h3 style="margin-top:36px">Items on hand</h3>
+    <div class="scroll"><table class="stack" id="invTbl"><thead><tr><th>Tag</th><th>Item</th><th>Found</th><th>Waiting</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+
+    <h3 style="margin-top:40px" id="statsTitle">Office numbers</h3>
+    <p class="lead" style="font-size:15px;margin-top:6px">Counted from every item on record, returned ones included.</p>
+    <div class="tiles" id="tiles"></div>
+    <div class="charts">
+      <div><h3 style="font-size:17px">Where items are found</h3><ul class="bars" id="byPlace"></ul></div>
+      <div><h3 style="font-size:17px">What gets turned in</h3><ul class="bars" id="byCat"></ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="faq">
+  <div class="wrap">
+    <h2>Questions</h2>
+    <div style="margin-top:14px">
+      <details><summary>Who posts the items?</summary><p>Only Security Office staff. They log in with a staff account to post the items turned in at the office, approve claims and release items. Students can search, claim and report, but can't post or change items.</p></details>
+      <details><summary>How do I prove an item is mine?</summary><p>When you claim, describe something not shown in the post: a sticker, what's inside, a scratch, the lock screen. At pickup, show your NU ID. Staff release the item only when the details match.</p></details>
+      <details><summary>Why can't I see the full details of an item?</summary><p>Posts leave out identifying details on purpose, so only the real owner can describe them. Photos of IDs and wallets are blurred before they're posted, and IDs show the name but not the student number.</p></details>
+      <details><summary>What happens to my personal details?</summary><p>Only Security Office staff see your name, student number, contact details and proof of ownership, and only to process your claim. They're deleted automatically 30 days after your claim is closed, following the Data Privacy Act of 2012 (RA 10173). Your lost-item reports are visible only to you.</p></details>
+      <details><summary>Why do I need to sign in?</summary><p>So the Security Office knows who is claiming and how to reach you, without you typing your details every time. In this prototype you enter your name and student number once. The full version would use your NU email login instead.</p></details>
+      <details><summary>How long are items kept?</summary><p>Items are kept for 30 days. After that, staff mark them for disposal or donation, so check early.</p></details>
+      <details><summary>I found something. What do I do?</summary><p>Bring it to the Security Office. Staff will tag it and post it here the same day.</p></details>
+      <details><summary>Will I get notified?</summary><p>File a report and check My requests. Possible matches appear there as soon as a similar item is posted.</p></details>
+    </div>
+  </div>
+</section>
+
+<footer class="band">
+  <div class="wrap cols">
+    <div><b style="font:800 22px Archivo,sans-serif">NULPLF</b><p>The NU Las Piñas Lost and Found board.</p></div>
+    <div><b>Security Office</b><p>Ground floor, near the main gate<br>Monday to Saturday, 7:00 AM to 8:00 PM</p><p><button type="button" class="link" data-sign="staff" id="footStaff">Staff login</button></p></div>
+    <div><b>About this site</b><p>A student project prototype for Science, Technology and Society (STS). Not an official NU Las Piñas service. Office location and hours are sample details.</p></div>
+  </div>
+</footer>
+
+<div class="ov" id="ovClaim" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="modal">
+    <button type="button" class="x" data-close aria-label="Close">×</button>
+    <h2 id="mTitle" style="font-size:28px">Claim this item</h2>
+    <p class="lead" id="mItem"></p>
+    <form id="claimForm" novalidate style="margin-top:16px">
+      <div class="who" id="cWho"></div>
+      <div class="f"><label for="cProof">Something only the owner would know</label><textarea id="cProof" required placeholder="There's a sticker under the cap and my initials JDC on the bottom."></textarea></div>
+      <label class="consent"><input type="checkbox" id="cConsent"><span><b>I agree</b> that the Security Office uses my name, student number and contact details only to check this claim. They're deleted 30 days after the claim is closed (Data Privacy Act of 2012, RA 10173).</span></label>
+      <button type="submit" id="cBtn" class="red">Send claim request</button>
+    </form>
+    <div id="cMsg" class="msg hide" role="status"></div>
+  </div>
+</div>
+
+<div class="ov" id="ovSign" role="dialog" aria-modal="true" aria-labelledby="pTitle">
+  <div class="modal">
+    <button type="button" class="x" data-close aria-label="Close">×</button>
+    <h2 id="pTitle" style="font-size:28px">Sign in</h2>
+    <div class="seg" role="group" aria-label="Account type" id="seg"><button type="button" id="tabStu" aria-pressed="true">Student</button><button type="button" id="tabStaff" aria-pressed="false">Security Office staff</button></div>
+    <p class="lead" id="pLead"></p>
+    <form id="signForm" novalidate style="margin-top:16px">
+      <div class="f"><label for="pName">Full name</label><input id="pName" required autocomplete="name" placeholder="Juan Dela Cruz"></div>
+      <div class="f"><label for="pNo">Student number <small>(the dash is added for you)</small></label><input id="pNo" required inputmode="numeric" autocomplete="off" placeholder="2025-123456" maxlength="13"></div>
+      <div class="f"><label for="pContact">NU email or mobile number</label><input id="pContact" required placeholder="Your NU email or 09XX XXX XXXX"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px"><button type="submit" id="pBtn">Continue</button><button type="button" class="alt hide" id="signOut">Sign out</button></div>
+    </form>
+    <form id="staffForm" class="hide" novalidate style="margin-top:16px">
+      <div class="f"><label for="aUser">Staff username</label><input id="aUser" required autocomplete="username" autocapitalize="none" spellcheck="false"></div>
+      <div class="f"><label for="aPass">Password</label><input id="aPass" type="password" required autocomplete="current-password"></div>
+      <button type="submit" id="aBtn">Log in</button>
+    </form>
+    <div id="staffIn" class="hide" style="margin-top:16px">
+      <p style="margin:0 0 14px">You're logged in as <b>Security Office staff</b>. You can post found items, approve claims and see the office numbers.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px"><button type="button" id="goStaff">Go to the Staff panel</button><button type="button" class="alt" id="staffOut">Log out</button></div>
+    </div>
+    <div id="pMsg" class="msg hide" role="status"></div>
+  </div>
+</div>
+
+<script>
+{
+const TZ="Asia/Manila",HOLD_DAYS=30,KEEP_DAYS=30,BLUR_CATS=["ID","Wallet"];
+/* Demo staff account for the Security Office. Prototype only: a real system checks
+   staff passwords on its server and never puts them in the page. */
+const DEMO_STAFF={user:"admin",pass:"lostfound2026"};
+const CATS=["ID","Umbrella","Charger","Tumbler","Calculator","Flash drive","Notebook","Earphones","Bag","Wallet","Other"];
+const PLACES=["Main lobby","Library","Canteen","Gym","Computer labs","Classrooms, 2nd floor","Classrooms, 3rd floor","Classrooms, 4th floor","Comfort rooms","Parking area","Other"];
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* Dates follow Philippine time, not UTC, so "today" is right before 8 AM too. */
+const dFmt=new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"});
+const ymd=t=>{const p=Object.fromEntries(dFmt.formatToParts(new Date(t)).map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}`};
+const today=ymd(Date.now());
+const ago=n=>new Date(Date.parse(today)-n*864e5).toISOString().slice(0,10);
+const stampAgo=n=>new Date(Date.now()-n*864e5).toISOString();
+const between=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/864e5);
+const days=d=>Math.max(0,between(String(d).slice(0,10),today));
+const fmt=d=>{const t=Date.parse(String(d).slice(0,10));return isNaN(t)?esc(d):new Date(t).toLocaleDateString("en-PH",{month:"short",day:"numeric",timeZone:"UTC"})};
+const size=b=>b>=1048576?(b/1048576).toFixed(1)+" MB":Math.max(1,Math.round(b/1024))+" KB";
+
+/* Sample data for demo mode. Dates are relative to today so the demo never goes stale. */
+const SAMPLE=[
+ {id:"s1",tag:"LF-0160",name:"Navy blue umbrella",cat:"Umbrella",place:"Canteen",date:ago(1),desc:"Folding, auto-open, left near the drinks counter.",status:"available"},
+ {id:"s2",tag:"LF-0159",name:"NU student ID",cat:"ID",place:"Main lobby",date:ago(1),desc:"BSCS student, surname starts with R. Blue lanyard.",status:"available"},
+ {id:"s3",tag:"LF-0158",name:"White 20W phone charger",cat:"Charger",place:"Library",date:ago(2),desc:"USB-C brick with cable, found at a study table.",status:"pending"},
+ {id:"s4",tag:"LF-0157",name:"Casio scientific calculator",cat:"Calculator",place:"Classrooms, 3rd floor",date:ago(3),desc:"fx-991 series, found after a Calculus class.",status:"available"},
+ {id:"s9",tag:"LF-0156",name:"Black backpack",cat:"Bag",place:"Library",date:ago(4),desc:"Medium size, keychain on the zipper.",status:"available"},
+ {id:"s5",tag:"LF-0155",name:"Pink tumbler, 32 oz",cat:"Tumbler",place:"Gym",date:ago(5),desc:"Stainless steel with a straw lid.",status:"available"},
+ {id:"s6",tag:"LF-0154",name:"Black 64GB flash drive",cat:"Flash drive",place:"Computer labs",date:ago(7),desc:"Left plugged into a lab PC.",status:"claimed",releasedAt:stampAgo(6)},
+ {id:"s7",tag:"LF-0153",name:"Wireless earbuds case",cat:"Earphones",place:"Classrooms, 2nd floor",date:ago(9),desc:"White case only, no earbuds inside.",status:"available"},
+ {id:"h1",tag:"LF-0152",name:"Blue Aqua Flask tumbler",cat:"Tumbler",place:"Library",date:ago(12),desc:"22 oz, dented near the bottom.",status:"claimed",releasedAt:stampAgo(10)},
+ {id:"h2",tag:"LF-0151",name:"Black umbrella",cat:"Umbrella",place:"Main lobby",date:ago(15),desc:"Long umbrella with a hook handle.",status:"claimed",releasedAt:stampAgo(15)},
+ {id:"h3",tag:"LF-0150",name:"Gray scientific calculator",cat:"Calculator",place:"Classrooms, 3rd floor",date:ago(19),desc:"Found under a desk.",status:"claimed",releasedAt:stampAgo(14)},
+ {id:"h4",tag:"LF-0149",name:"Brown leather wallet",cat:"Wallet",place:"Canteen",date:ago(22),desc:"Bifold. Contents kept by the Security Office.",status:"claimed",releasedAt:stampAgo(20)},
+ {id:"h5",tag:"LF-0148",name:"USB-C cable",cat:"Charger",place:"Library",date:ago(26),desc:"1 m white cable.",status:"claimed",releasedAt:stampAgo(24)},
+ {id:"s8",tag:"LF-0147",name:"Spiral notebook",cat:"Notebook",place:"Library",date:ago(34),desc:"Green cover, Discrete Math notes.",status:"available"},
+ {id:"h6",tag:"LF-0146",name:"NU student ID",cat:"ID",place:"Canteen",date:ago(40),desc:"BSIT student, surname starts with D.",status:"claimed",releasedAt:stampAgo(38)},
+ {id:"h7",tag:"LF-0145",name:"Gray hoodie",cat:"Other",place:"Gym",date:ago(45),desc:"Size M, no print.",status:"claimed",releasedAt:stampAgo(41)}];
+const SAMPLE_CLAIMS=[
+ {uid:"sample-1",cid:"CL-7Q2M",itemId:"s3",itemName:"White 20W phone charger",tag:"LF-0158",name:"Paolo Reyes",studentNo:"2024-104233",contact:"preyes@example.edu",proof:"There's a strip of yellow tape on the cable near the plug.",consent:true,status:"pending",at:stampAgo(1)},
+ {uid:"sample-2",cid:"CL-4KD8",itemId:"s6",itemName:"Black 64GB flash drive",tag:"LF-0154",name:"Bea Villanueva",studentNo:"2023-118560",contact:"bvillanueva@example.edu",proof:"Has a folder named THESIS-FINAL-v3 with our Chapter 2.",consent:true,status:"approved",at:stampAgo(7),decidedAt:stampAgo(6)},
+ {uid:"sample-3",cid:"CL-9VX1",itemId:"h1",itemName:"Blue Aqua Flask tumbler",tag:"LF-0152",name:"Carlo Mendoza",studentNo:"2025-120417",contact:"cmendoza@example.edu",proof:"Dent on the bottom and a cat sticker under the lid.",consent:true,status:"approved",at:stampAgo(11),decidedAt:stampAgo(10)},
+ {uid:"sample-4",cid:"CL-6TR3",itemId:"h4",itemName:"Brown leather wallet",tag:"LF-0149",name:"Andrea Cruz",studentNo:"2023-101775",contact:"acruz@example.edu",proof:"Brown bifold with my library card and a beep card inside.",consent:true,status:"approved",at:stampAgo(21),decidedAt:stampAgo(20)},
+ {uid:"sample-5",cid:"CL-2HB6",itemId:"h4",itemName:"Brown leather wallet",tag:"LF-0149",name:"Mark Santos",studentNo:"2024-109982",contact:"msantos@example.edu",proof:"Black wallet with my ID inside.",consent:true,status:"rejected",at:stampAgo(22),decidedAt:stampAgo(21)},
+ {uid:"sample-6",cid:"CL-8MW5",itemId:"h6",itemName:"NU student ID",tag:"LF-0146",name:"Joanna Dizon",studentNo:"2025-131208",contact:"jdizon@example.edu",proof:"My ID, the lanyard has a small keychain.",consent:true,status:"approved",at:stampAgo(39),decidedAt:stampAgo(38)}];
+
+const ICON={
+ "ID":'<rect x="18" y="12" width="64" height="46" rx="5" fill="#2337c6"/><rect x="18" y="12" width="64" height="12" rx="5" fill="#1b2ca6"/><circle cx="36" cy="40" r="8" fill="#ecd09a"/><path d="M50 36h22M50 44h16" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
+ "Umbrella":'<path d="M14 36a36 24 0 0 1 72 0z" fill="#2337c6"/><path d="M14 36q9-7 18 0q9-7 18 0q9-7 18 0q9-7 18 0" fill="#1b2ca6"/><path d="M50 36v20a5 5 0 0 1-10 0" stroke="#2a2112" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+ "Charger":'<rect x="30" y="18" width="30" height="30" rx="5" fill="#f4f4f4" stroke="#b8955a" stroke-width="2"/><path d="M38 18v-8M52 18v-8" stroke="#888" stroke-width="3.5"/><path d="M45 48v6q0 8 10 8h22" stroke="#2a2112" stroke-width="3" fill="none"/>',
+ "Tumbler":'<path d="M36 18h28l-3 44H39z" fill="#d43a2f"/><rect x="34" y="12" width="32" height="8" rx="3" fill="#2a2112"/><path d="M40 30h20" stroke="#fff" stroke-width="2" opacity=".6"/>',
+ "Calculator":'<rect x="32" y="8" width="36" height="54" rx="5" fill="#2a2112"/><rect x="37" y="13" width="26" height="11" rx="2" fill="#cfe0c4"/>'+[0,1,2].map(r=>[0,1,2].map(c=>`<rect x="${38+c*9}" y="${30+r*9}" width="6" height="6" rx="1.5" fill="#ecd09a"/>`).join("")).join(""),
+ "Flash drive":'<rect x="24" y="26" width="42" height="20" rx="4" fill="#2a2112"/><rect x="66" y="29" width="14" height="14" fill="#c9c9c9"/><rect x="70" y="33" width="3" height="3" fill="#777"/><rect x="74" y="33" width="3" height="3" fill="#777"/>',
+ "Notebook":'<rect x="28" y="10" width="44" height="52" rx="3" fill="#2337c6"/>'+[0,1,2,3,4,5].map(i=>`<circle cx="28" cy="${16+i*8}" r="2.5" fill="none" stroke="#2a2112" stroke-width="2"/>`).join("")+'<rect x="40" y="20" width="24" height="8" rx="1" fill="#fff"/>',
+ "Earphones":'<rect x="30" y="22" width="40" height="30" rx="14" fill="#f4f4f4" stroke="#b8955a" stroke-width="2"/><path d="M30 34h40" stroke="#b8955a" stroke-width="1.5"/><circle cx="50" cy="44" r="2" fill="#2a2112"/>',
+ "Bag":'<path d="M24 26h52l-4 36H28z" fill="#2a2112"/><path d="M38 26v-6a12 10 0 0 1 24 0v6" stroke="#2a2112" stroke-width="4" fill="none"/><rect x="40" y="36" width="20" height="10" rx="2" fill="#d43a2f"/>',
+ "Wallet":'<rect x="22" y="20" width="56" height="34" rx="5" fill="#7d4a26"/><rect x="56" y="30" width="22" height="14" rx="4" fill="#5c361b"/><circle cx="64" cy="37" r="2.5" fill="#ecd09a"/>',
+ "Other":'<rect x="28" y="22" width="44" height="34" rx="4" fill="#b8955a"/><path d="M28 32h44M50 22v34" stroke="#2a2112" stroke-width="2.5"/>'};
+const icon=c=>`<svg viewBox="0 0 100 70" aria-hidden="true">${ICON[c]||ICON.Other}</svg>`;
+const opts=(arr,first)=>(first?`<option value="">${first}</option>`:"")+arr.map(x=>`<option>${esc(x)}</option>`).join("");
+$("#fCat").innerHTML=opts(CATS,"All categories");$("#fPlace").innerHTML=opts(PLACES,"Anywhere on campus");
+$("#lCat").innerHTML=opts(CATS);$("#sCat").innerHTML=opts(CATS);$("#lPlace").innerHTML=opts(PLACES,"Not sure");$("#sPlace").innerHTML=opts(PLACES);
+$("#lDate").value=today;$("#sDate").value=today;$("#lDate").max=today;$("#sDate").max=today;
+$("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);
+
+let items=[],allClaims=[],my={profile:null,reports:[],claims:[]},db=null,assets=null,uid=null,editor=false,live=false,claimItem=null,pendingPhoto=null,afterSign=null,photoRun=0;
+/* Demo mode accounts: staffIn is the Security Office login; demoStore keeps each student's requests by student number. */
+let staffIn=false;const demoStore={};
+const purging=new Set();
+const myUid=()=>uid||"me";
+const expired=c=>!!c.decidedAt&&!c.purged&&days(ymd(c.decidedAt))>=KEEP_DAYS;
+const purge=c=>({...c,name:"",studentNo:"",contact:"",proof:"",purged:true});
+const strip=({uid,...c})=>c;
+const statusText={available:"Available",pending:"Claim pending",claimed:"Claimed"};
+
+/* ---------- data layer: the live database when published, memory in demo mode ---------- */
+async function setItem(id,patch){
+  if(live)return db.doc("found/"+id).update(patch);
+  const it=items.find(i=>i.id===id);if(it)Object.assign(it,patch);renderAll();
+}
+async function addItem(it){if(live)return db.collection("found").add(it);items.push({...it,id:newId("x")});renderAll()}
+async function delItem(id){if(live)return db.doc("found/"+id).delete();items=items.filter(i=>i.id!==id);renderAll()}
+async function saveMine(){if(live&&uid)await db.doc("data/users/"+uid+"/profile").set({profile:my.profile,reports:my.reports,claims:my.claims})}
+async function saveClaims(u,list){
+  if(live)return db.collection("claims").doc(u).set({list});
+  allClaims=allClaims.filter(c=>c.uid!==u).concat(list.map(c=>({...c,uid:u})));
+  if(u===myUid())syncMine(list);
+  renderAll();
+}
+/* Copy staff decisions (and the 30-day deletion) into the student's own copy of their claims. */
+function syncMine(list){
+  const by=Object.fromEntries(list.map(c=>[c.cid,c]));let ch=false;
+  my.claims=my.claims.map(c=>{const s=by[c.cid];if(!s||(s.status===c.status&&!!s.purged===!!c.purged))return c;ch=true;const n={...c,status:s.status,decidedAt:s.decidedAt};return s.purged?purge(n):n});
+  return ch;
+}
+
+/* ---------- rendering ---------- */
+function photoSrc(i){
+  if(i.photo)return "/_blob/"+encodeURIComponent(i.photo);
+  if(!live&&typeof i.photoUrl==="string"&&i.photoUrl.startsWith("blob:"))return i.photoUrl;
+  return "";
+}
+function visible(){
+  const q=$("#q").value.trim().toLowerCase(),c=$("#fCat").value,p=$("#fPlace").value,sc=$("#fClaimed").checked;
+  return items.filter(i=>(sc||i.status!=="claimed")&&(!c||i.cat===c)&&(!p||i.place===p)&&(!q||[i.name,i.cat,i.place,i.desc,i.tag].join(" ").toLowerCase().includes(q))).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+}
+function renderBoard(){
+  const v=visible(),av=items.filter(i=>i.status==="available").length,pe=items.filter(i=>i.status==="pending").length,wk=items.filter(i=>days(i.date)<=7&&i.status!=="claimed").length;
+  $("#stat").innerHTML=`<span><b>${av}</b>waiting to be claimed</span><span><b>${pe}</b>claim pending</span><span><b>${wk}</b>turned in this week</span>`;
+  $("#board").innerHTML=v.length?v.map(i=>{const src=photoSrc(i);return `<article class="tag ${i.status==="claimed"?"claimed":""}" id="item-${esc(i.id)}">
+    <span class="no">${esc(i.tag)}</span>
+    <div class="pic">${src?`<img src="${esc(src)}" alt="Photo of ${esc(i.name)}${i.blurred?", blurred for privacy":""}" loading="lazy">${i.blurred?`<span class="blurtag">Blurred for privacy</span>`:""}`:icon(i.cat)}</div>
+    <h3>${esc(i.name)}</h3>
+    <div class="meta">${esc(i.place)} · <span class="nw">${fmt(i.date)}</span></div>
+    ${i.desc?`<div class="desc">${esc(i.desc)}</div>`:""}
+    <div class="foot"><span class="badge b-${esc(i.status)}">${esc(statusText[i.status]||i.status)}</span>${i.status==="available"&&!staffIn?`<button type="button" data-claim="${esc(i.id)}">This is mine</button>`:""}</div>
+  </article>`}).join(""):`<div class="empty">No items match. Try another category, or <a href="#report">report your lost item</a> so you see it when it's turned in.</div>`;
+}
+function matchesFor(r){return items.filter(i=>i.status==="available"&&i.cat===r.cat&&i.date>=r.date)}
+function renderMine(){
+  const rs=my.reports||[],cs=my.claims||[];let n=0;
+  const rHtml=rs.slice().reverse().map(r=>{const m=matchesFor(r);n+=m.length;return `<div class="req"><div class="h"><b>${esc(r.item)}</b><span class="badge b-available" style="border:1px solid var(--line)">Report · ${fmt(r.date)}</span></div><p>${esc(r.cat)}${r.place?" · "+esc(r.place):""}</p>${m.map(i=>`<div class="match"><span>Possible match: <b>${esc(i.name)}</b> (${esc(i.tag)}), ${esc(i.place)}</span><a href="#item-${esc(i.id)}">View tag</a></div>`).join("")}</div>`}).join("");
+  const cHtml=cs.slice().reverse().map(c=>`<div class="req"><div class="h"><b>${esc(c.itemName)}</b><span class="badge ${c.status==="approved"?"b-available":c.status==="rejected"?"b-claimed":"b-pending"}" style="border:1px solid var(--line)">${c.status==="approved"?"Approved: pick up now":c.status==="rejected"?"Not approved":"Claim pending"}</span></div><p>Ref ${esc(c.cid)} · ${esc(c.tag)}${c.status==="approved"?" · Bring your NU ID to the Security Office.":c.status==="rejected"?" · Visit the Security Office if you think this is a mistake.":" · Staff will check your details."}</p></div>`).join("");
+  $("#mineList").innerHTML=(cHtml+rHtml)||`<div class="req"><p style="margin:0">${staffIn?"You're logged in as staff. Students' claims appear in the Staff panel.":"Nothing yet. Claims and reports you send appear here."}</p></div>`;
+  const d=$("#mineDot");d.textContent=n;d.classList.toggle("hide",!n);
+}
+function renderWho(){
+  const p=my.profile;
+  const b=$("#signBtn");$("#footStaff").classList.toggle("hide",live);
+  if(staffIn){b.innerHTML='Staff<span class="adm">: admin</span>';b.setAttribute("aria-label","Logged in as Security Office staff. Log out")}
+  else{b.textContent=p?p.name.split(/\s+/)[0]:"Sign in";b.setAttribute("aria-label",p?`Signed in as ${p.name}. Change or sign out`:"Sign in")}
+  const who=verb=>staffIn?`<span>Logged in as <b>Security Office staff</b>. Students send ${verb==="Reporting"?"reports":"claims"} from their own account.</span><button type="button" class="link" data-sign="student">Switch to student</button>`:p?`<span>${verb} as <b>${esc(p.name)}</b> · ${esc(p.studentNo)}</span><button type="button" class="link" data-sign>Change</button>`:`<span>Sign in so the Security Office knows who to contact.</span><button type="button" class="link" data-sign>Sign in</button>`;
+  $("#lWho").innerHTML=who("Reporting");$("#lWho").classList.toggle("out",!p);
+  $("#cWho").innerHTML=who("Claiming");$("#cWho").classList.toggle("out",!p);
+}
+function renderStaff(){
+  $("#staffLink").classList.toggle("hide",!editor);$("#staff").classList.toggle("hide",!editor);if(!editor)return;
+  $("#staffLead").textContent=live?"Only editors of this page see this panel.":"Logged in as Security Office staff. Only staff accounts see this panel.";
+  const pend=allClaims.filter(c=>c.status==="pending");
+  $("#claimTbl tbody").innerHTML=pend.length?pend.map(c=>`<tr><td><b>${esc(c.itemName)}</b><br><span class="nw">${esc(c.tag)}</span></td><td>${esc(c.name)}<br>${esc(c.studentNo)}<br>${esc(c.contact)}</td><td>${esc(c.proof)}</td><td><div class="act"><button type="button" data-ok="${esc(c.uid)}|${esc(c.cid)}">Approve</button><button type="button" class="alt" data-no="${esc(c.uid)}|${esc(c.cid)}">Reject</button></div></td></tr>`).join(""):`<tr><td colspan="4">No pending claims.</td></tr>`;
+  const closed=allClaims.filter(c=>c.status!=="pending").sort((a,b)=>String(b.decidedAt||"").localeCompare(String(a.decidedAt||""))).slice(0,8);
+  $("#closedTbl tbody").innerHTML=closed.length?closed.map(c=>{const d=c.decidedAt?days(ymd(c.decidedAt)):0,left=Math.max(0,KEEP_DAYS-d);return `<tr><td><b>${esc(c.itemName)}</b><br><span class="nw">${esc(c.tag)}</span></td><td>${c.purged?`<span class="muted">Details deleted after ${KEEP_DAYS} days</span>`:`${esc(c.name)}<br>${esc(c.studentNo)}`}</td><td>${c.status==="approved"?"Approved":"Rejected"}</td><td class="nw">${c.decidedAt?fmt(ymd(c.decidedAt)):""}${c.purged?"":`<span class="sub">Details deleted in ${left} day${left===1?"":"s"}</span>`}</td></tr>`}).join(""):`<tr><td colspan="4">No closed claims yet.</td></tr>`;
+  const inv=items.filter(i=>i.status!=="claimed").sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  $("#invTbl tbody").innerHTML=inv.length?inv.map(i=>{const d=days(i.date);return `<tr><td class="nw">${esc(i.tag)}</td><td>${esc(i.name)}</td><td class="nw">${fmt(i.date)}</td><td class="nw ${d>=HOLD_DAYS?"old":""}">${d} day${d===1?"":"s"}${d>=HOLD_DAYS?" · past 30":""}</td><td>${esc(statusText[i.status]||i.status)}</td><td><div class="act"><button type="button" class="alt" data-release="${esc(i.id)}">Mark claimed</button><button type="button" class="alt" data-del="${esc(i.id)}">Remove</button></div></td></tr>`}).join(""):`<tr><td colspan="6">No items on hand.</td></tr>`;
+  renderStats();
+}
+function renderStats(){
+  const total=items.length,ret=items.filter(i=>i.status==="claimed"),hand=items.filter(i=>i.status!=="claimed"),old=hand.filter(i=>days(i.date)>=HOLD_DAYS);
+  const durs=ret.filter(i=>i.releasedAt).map(i=>Math.max(0,between(String(i.date),ymd(i.releasedAt))));
+  const avg=durs.length?durs.reduce((a,b)=>a+b,0)/durs.length:null,pct=total?Math.round(ret.length/total*100):0;
+  $("#tiles").innerHTML=[[total,"Items turned in"],[ret.length,`Returned to owners (${pct}%)`],[hand.length,`Still on hand${old.length?`, ${old.length} past 30 days`:""}`],[avg==null?"–":avg.toFixed(1),"Average days from turn-in to return"]].map(([n,l])=>`<div class="tile"><b>${esc(n)}</b><span>${esc(l)}</span></div>`).join("");
+  bars($("#byPlace"),"place");bars($("#byCat"),"cat");
+}
+function bars(el,key){
+  const counts={};for(const i of items){const k=i[key]||"Other";counts[k]=(counts[k]||0)+1}
+  const rows=Object.entries(counts).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+  const max=Math.max(1,...rows.map(r=>r[1])),total=items.length||1;
+  el.innerHTML=rows.length?rows.map(([k,n])=>`<li title="${esc(k)}: ${n} of ${items.length} items (${Math.round(n/total*100)}%)"><span class="lab">${esc(k)}</span><span aria-hidden="true"><span class="bar" style="width:${(n/max*100).toFixed(1)}%"></span></span><span class="val">${n}</span></li>`).join(""):`<li class="muted">No items yet.</li>`;
+}
+const renderAll=()=>{renderBoard();renderMine();renderWho();renderStaff()};
+["#q","#fCat","#fPlace","#fClaimed"].forEach(s=>$(s).addEventListener("input",renderBoard));
+
+/* ---------- helpers ---------- */
+const show=(el,t)=>{el.textContent=t;el.classList.remove("hide")};
+const filled=ids=>ids.map(id=>{const e=$(id);const ok=e.value.trim()!=="";e.setAttribute("aria-invalid",ok?"false":"true");return ok}).every(Boolean);
+const newId=p=>p+"-"+Math.random().toString(36).slice(2,6).toUpperCase();
+const fmtNo=v=>{const d=v.replace(/\D/g,"").slice(0,12);return d.length>4?d.slice(0,4)+"-"+d.slice(4):d};
+
+/* ---------- menu and dialogs ---------- */
+const setMenu=o=>{$("#nav").classList.toggle("open",o);$("#menuBtn").setAttribute("aria-expanded",String(o))};
+$("#menuBtn").addEventListener("click",()=>setMenu(!$("#nav").classList.contains("open")));
+$("#navLinks").addEventListener("click",e=>{if(e.target.closest("a"))setMenu(false)});
+const stack=[];
+function openM(id,focusSel){const o=$(id);if(o.classList.contains("on"))return;stack.push({o,back:document.activeElement});o.classList.add("on");setMenu(false);setTimeout(()=>$(focusSel)?.focus(),0)}
+function closeM(){const t=stack.pop();if(!t)return;t.o.classList.remove("on");if(t.o.id==="ovSign")afterSign=null;t.back?.focus?.()}
+document.querySelectorAll(".ov").forEach(o=>o.addEventListener("click",e=>{if(e.target===o&&stack.at(-1)?.o===o)closeM()}));
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(stack.length)closeM();else setMenu(false)});
+
+function setTab(t){
+  const st=t==="staff";
+  $("#tabStu").setAttribute("aria-pressed",String(!st));$("#tabStaff").setAttribute("aria-pressed",String(st));
+  $("#signForm").classList.toggle("hide",st);$("#staffForm").classList.toggle("hide",!st||staffIn);$("#staffIn").classList.toggle("hide",!st||!staffIn);
+  $("#pTitle").textContent=st?(staffIn?"Staff account":"Staff login"):(my.profile?"Your details":"Sign in");
+  $("#pLead").textContent=st?"For Security Office staff only. Staff post the items turned in at the office, approve claims and release items.":"Prototype sign-in: the full version would use your NU email login, so these details would fill in by themselves. No password is asked here.";
+  $("#pLead").classList.toggle("hide",st&&staffIn);$("#pMsg").classList.add("hide");
+}
+function openSign(next,tab){
+  afterSign=next||null;const p=my.profile;
+  $("#pName").value=p?.name||"";$("#pNo").value=p?.studentNo||"";$("#pContact").value=p?.contact||"";$("#aUser").value="";$("#aPass").value="";
+  ["#pName","#pNo","#pContact","#aUser","#aPass"].forEach(s=>$(s).removeAttribute("aria-invalid"));
+  $("#pBtn").textContent=p?"Save":"Continue";$("#signOut").classList.toggle("hide",!p);
+  $("#seg").classList.toggle("hide",live);
+  const t=live?"student":tab||(staffIn?"staff":"student");setTab(t);
+  openM("#ovSign",t==="staff"?(staffIn?"#goStaff":"#aUser"):"#pName");
+}
+$("#tabStu").addEventListener("click",()=>{setTab("student");$("#pName").focus()});
+$("#tabStaff").addEventListener("click",()=>{setTab("staff");$(staffIn?"#goStaff":"#aUser").focus()});
+const requireProfile=next=>my.profile?next():openSign(next,"student");
+function openClaim(it){
+  claimItem=it;$("#mItem").textContent=`${it.name} (${it.tag}), found at ${it.place} on ${fmt(it.date)}.`;
+  $("#claimForm").reset();$("#cProof").removeAttribute("aria-invalid");$("#claimForm").classList.remove("hide");$("#cMsg").classList.add("hide");renderWho();
+  openM("#ovClaim","#cProof");
+}
+
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.hasAttribute("data-close")){closeM();return}
+  if(b.hasAttribute("data-sign")){openSign(null,b.dataset.sign||undefined);return}
+  if(b.dataset.claim){const it=items.find(i=>i.id===b.dataset.claim);if(it)requireProfile(()=>openClaim(it));return}
+  if(b.dataset.ok||b.dataset.no)decide((b.dataset.ok||b.dataset.no).split("|"),b.dataset.ok?"approved":"rejected",b);
+  if(b.dataset.release)release(b.dataset.release,b);
+  if(b.dataset.del)removeItem(b.dataset.del,b);
+});
+
+/* ---------- sign in ---------- */
+$("#pNo").addEventListener("input",e=>{e.target.value=fmtNo(e.target.value)});
+$("#signForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!filled(["#pName","#pNo","#pContact"])){show($("#pMsg"),"Please fill in every field.");return}
+  if(!/^\d{4}-\d{4,8}$/.test($("#pNo").value)){$("#pNo").setAttribute("aria-invalid","true");show($("#pMsg"),"Check your student number, for example 2025-123456.");return}
+  const prof={name:$("#pName").value.trim().replace(/\s+/g," "),studentNo:$("#pNo").value,contact:$("#pContact").value.trim()};
+  if(!live){
+    /* Demo: one account at a time. Each student number keeps its own requests, so you can switch to staff and back. */
+    staffIn=false;editor=false;
+    const key="stu-"+prof.studentNo;
+    if(uid!==key){my=demoStore[key]||(demoStore[key]={profile:null,reports:[],claims:[]});uid=key}
+    my.profile=prof;syncMine(allClaims.filter(c=>c.uid===uid));
+  }else{
+    const prev=my.profile;my.profile=prof;$("#pBtn").disabled=true;
+    try{await saveMine()}catch(err){my.profile=prev;$("#pBtn").disabled=false;show($("#pMsg"),"Couldn't save your details right now. Please try again.");return}
+    $("#pBtn").disabled=false;
+  }
+  const next=afterSign;afterSign=null;closeM();renderAll();if(next)next();
+});
+$("#staffForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  if(!filled(["#aUser","#aPass"])){show($("#pMsg"),"Enter the staff username and password.");return}
+  if($("#aUser").value.trim().toLowerCase()!==DEMO_STAFF.user||$("#aPass").value!==DEMO_STAFF.pass){$("#aPass").value="";$("#aPass").setAttribute("aria-invalid","true");show($("#pMsg"),"Wrong username or password.");$("#aPass").focus();return}
+  uid=null;my={profile:null,reports:[],claims:[]};staffIn=true;editor=true;afterSign=null;
+  closeM();renderAll();$("#staff").scrollIntoView({block:"start"});
+});
+$("#staffOut").addEventListener("click",()=>{staffIn=false;editor=false;closeM();renderAll();$("#found").scrollIntoView({block:"start"})});
+$("#goStaff").addEventListener("click",()=>{closeM();$("#staff").scrollIntoView({block:"start"})});
+$("#signOut").addEventListener("click",async()=>{
+  if(!live){uid=null;my={profile:null,reports:[],claims:[]};closeM();renderAll();return}
+  const prev=my.profile;my.profile=null;
+  try{await saveMine()}catch(err){my.profile=prev;show($("#pMsg"),"Couldn't sign out right now. Please try again.");return}
+  closeM();renderWho();
+});
+
+/* ---------- student: claim and report ---------- */
+$("#claimForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!my.profile){openSign(null,"student");return}
+  if(live&&!uid){show($("#cMsg"),"Sign in to Claude to send a claim from this page.");return}
+  if(!filled(["#cProof"])){show($("#cMsg"),"Describe something only the owner would know.");return}
+  if(!$("#cConsent").checked){show($("#cMsg"),"Tick the consent box so staff can use your details for this claim.");return}
+  const p=my.profile,c={cid:newId("CL"),itemId:claimItem.id,itemName:claimItem.name,tag:claimItem.tag,name:p.name,studentNo:p.studentNo,contact:p.contact,proof:$("#cProof").value.trim(),consent:true,status:"pending",at:new Date().toISOString()};
+  $("#cBtn").disabled=true;
+  try{my.claims.push(c);await saveMine();await saveClaims(myUid(),my.claims);await setItem(claimItem.id,{status:"pending"});
+    $("#claimForm").classList.add("hide");show($("#cMsg"),`Claim sent. Your reference is ${c.cid}. Staff will check your details; once approved, bring your NU ID to the Security Office.`);renderAll();
+  }catch(err){my.claims=my.claims.filter(x=>x.cid!==c.cid);show($("#cMsg"),"Couldn't send the claim right now. Please try again.")}
+  $("#cBtn").disabled=false;
+});
+$("#lostForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!my.profile){openSign(()=>$("#lostForm").requestSubmit(),"student");return}
+  if(live&&!uid){show($("#lostMsg"),"Sign in to Claude to save reports from this page.");return}
+  if(!filled(["#lItem","#lDesc","#lDate"])){show($("#lostMsg"),"Please fill in the fields marked in red.");return}
+  if(!$("#lConsent").checked){show($("#lostMsg"),"Tick the consent box to save your report.");return}
+  const r={rid:newId("LR"),cat:$("#lCat").value,date:$("#lDate").value,item:$("#lItem").value.trim(),place:$("#lPlace").value,desc:$("#lDesc").value.trim(),consent:true,at:new Date().toISOString()};
+  $("#lostBtn").disabled=true;
+  try{my.reports.push(r);await saveMine();const m=matchesFor(r).length;show($("#lostMsg"),m?`Report saved. ${m} possible match${m>1?"es are":" is"} already posted: see My requests.`:"Report saved. No match yet. Check My requests for new matches.");$("#lostForm").reset();$("#lDate").value=today;renderMine()}
+  catch(err){my.reports=my.reports.filter(x=>x.rid!==r.rid);show($("#lostMsg"),"Couldn't save the report right now. Please try again.")}
+  $("#lostBtn").disabled=false;
+});
+
+/* ---------- staff ---------- */
+async function release(id,btn){btn.disabled=true;try{await setItem(id,{status:"claimed",releasedAt:new Date().toISOString()})}catch(err){btn.disabled=false}}
+async function removeItem(id,btn){btn.disabled=true;try{await delItem(id)}catch(err){btn.disabled=false}}
+async function decide([u,cid],status,btn){
+  btn.disabled=true;
+  try{const row=allClaims.find(c=>c.uid===u&&c.cid===cid);if(!row){btn.disabled=false;return}
+    const at=new Date().toISOString();
+    const list=allClaims.filter(c=>c.uid===u).map(c=>strip(c.cid===cid?{...c,status,decidedAt:at}:c));
+    await saveClaims(u,list);
+    await setItem(row.itemId,status==="approved"?{status:"claimed",releasedAt:at}:{status:"available"});
+  }catch(err){btn.disabled=false}
+}
+
+/* Photos are shrunk to at most 1280 px before upload. IDs and wallets are blurred
+   on the device, so the sharp original never leaves the staff computer. */
+async function processPhoto(file,blur){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=new Image();img.src=url;await img.decode();
+    const s=Math.min(1,1280/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.max(1,Math.round(img.naturalWidth*s)),h=Math.max(1,Math.round(img.naturalHeight*s));
+    const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.drawImage(img,0,0,w,h);
+    if(blur){const t=document.createElement("canvas");t.width=Math.max(1,Math.round(w/40));t.height=Math.max(1,Math.round(h/40));const tx=t.getContext("2d");tx.imageSmoothingQuality="high";tx.drawImage(c,0,0,t.width,t.height);x.imageSmoothingEnabled=true;x.imageSmoothingQuality="high";x.clearRect(0,0,w,h);x.drawImage(t,0,0,w,h)}
+    return await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error("encode")),"image/jpeg",.82));
+  }finally{URL.revokeObjectURL(url)}
+}
+async function updatePhoto(){
+  const run=++photoRun,f=$("#sPhoto").files[0],p=$("#sPrev"),n=$("#sPhotoNote");
+  if(pendingPhoto)URL.revokeObjectURL(pendingPhoto.url);pendingPhoto=null;
+  if(!f){p.classList.add("hide");n.classList.add("hide");return}
+  const blur=$("#sBlur").checked;
+  try{const blob=await processPhoto(f,blur);if(run!==photoRun)return;
+    pendingPhoto={blob,url:URL.createObjectURL(blob),blurred:blur};p.src=pendingPhoto.url;p.classList.remove("hide");
+    show(n,`Shrunk from ${size(f.size)} to ${size(blob.size)}${blur?" and blurred":""}. This is how it will be posted.`);
+  }catch(err){if(run!==photoRun)return;p.classList.add("hide");show(n,"This photo couldn't be read. Try a JPG or PNG.")}
+}
+$("#sPhoto").addEventListener("change",updatePhoto);
+$("#sBlur").addEventListener("change",updatePhoto);
+$("#sCat").addEventListener("change",()=>{$("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);updatePhoto()});
+$("#foundForm").addEventListener("submit",async e=>{
+  e.preventDefault();if(!filled(["#sName","#sDate"])){show($("#foundMsg"),"Add the item name and date found.");return}
+  $("#foundBtn").disabled=true;
+  const nums=items.map(i=>parseInt(String(i.tag).replace(/\D/g,""),10)).filter(n=>!isNaN(n));
+  const it={tag:"LF-"+String((nums.length?Math.max(...nums):100)+1).padStart(4,"0"),name:$("#sName").value.trim(),cat:$("#sCat").value,place:$("#sPlace").value,date:$("#sDate").value,desc:$("#sDesc").value.trim(),status:"available",postedAt:new Date().toISOString()};
+  let note="";
+  try{const ph=pendingPhoto;
+    if(ph){if(live){if(assets){const a=await assets.upload(ph.blob);it.photo=a.id;it.blurred=ph.blurred}else note=" The photo wasn't saved because photo storage isn't turned on for this page."}else{it.photoUrl=ph.url;it.blurred=ph.blurred}}
+    await addItem(it);
+    if(ph&&live)URL.revokeObjectURL(ph.url);pendingPhoto=null;
+    show($("#foundMsg"),`Posted as ${it.tag}.${note}`);$("#foundForm").reset();$("#sDate").value=today;$("#sBlur").checked=BLUR_CATS.includes($("#sCat").value);$("#sPrev").classList.add("hide");$("#sPhotoNote").classList.add("hide");
+  }catch(err){show($("#foundMsg"),err&&err.code==="quota_exceeded"?"Storage is full. Remove old items first.":"Couldn't post the item. Please try again.")}
+  $("#foundBtn").disabled=false;
+});
+
+/* ---------- start ---------- */
+function startDemo(msg){live=false;items=SAMPLE.map(x=>({...x}));allClaims=SAMPLE_CLAIMS.map(c=>expired(c)?purge(c):{...c});editor=staffIn;$("#srcNote").textContent=msg;renderAll()}
+const DEMO_NOTE="Demo mode: these are sample items, and changes reset when you reload. Security Office staff log in from Sign in or the Staff login link at the bottom.";
+renderAll();
+(async()=>{
+  if(typeof window.claude?.use!=="function"){startDemo(DEMO_NOTE);return}
+  let user=null;
+  try{
+    user=await window.claude.use("user");
+    db=await window.claude.use("db");
+    if(!db){startDemo(DEMO_NOTE);return}
+    try{uid=user?await user.id():null}catch(e){}
+    try{editor=!!(user&&await user.canEdit())}catch(e){}
+    try{assets=editor?await window.claude.use("assets"):null}catch(e){}
+    live=true;
+    const timer=setTimeout(()=>{$("#srcNote").textContent="Items can't be reached yet. Check your connection."},10000);
+    db.collection("found").onSnapshot(s=>{if(!s.metadata.fromCache)clearTimeout(timer);items=s.docs.map(d=>({id:d.id,...d.data()}));$("#srcNote").textContent=!items.length?"No items posted yet.":items.some(i=>i.sample)?"The items shown are sample entries for the demo. Staff can remove them from the Staff panel.":"Photos and descriptions are posted by the Security Office.";renderAll()},err=>{clearTimeout(timer);$("#srcNote").textContent="Couldn't load items right now."});
+    if(uid)db.doc("data/users/"+uid+"/profile").onSnapshot(s=>{const d=s.exists?s.data():{};my={profile:d.profile||null,reports:[...(d.reports||[])],claims:[...(d.claims||[])]};
+      if(my.claims.some(expired)){my.claims=my.claims.map(c=>expired(c)?purge(c):c);saveMine().catch(()=>{})}
+      renderMine();renderWho()},()=>{});
+    if(uid)db.collection("claims").doc(uid).onSnapshot(s=>{if(!s.exists)return;if(syncMine(s.data().list||[])){renderMine();saveMine().catch(()=>{})}},()=>{});
+    if(editor)db.collection("claims").onSnapshot(s=>{
+      allClaims=s.docs.flatMap(d=>(d.data().list||[]).map(c=>({...c,uid:d.id})));
+      for(const d of s.docs){const list=d.data().list||[];if(list.some(expired)&&!purging.has(d.id)){purging.add(d.id);db.collection("claims").doc(d.id).set({list:list.map(c=>expired(c)?purge(c):c)}).catch(()=>{}).finally(()=>purging.delete(d.id))}}
+      renderStaff()},()=>{});
+    renderAll();
+  }catch(e){startDemo(DEMO_NOTE)}
+})();
+}
+</script>
+</body>
+</html>
